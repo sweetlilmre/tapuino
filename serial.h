@@ -9,5 +9,6 @@ void serial_write( char data );
 void serial_print( char* data );
 void serial_printByte( unsigned char data );
 void serial_println( char* data );
+void serial_println_P( char* data );
 
 #endif

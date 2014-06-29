@@ -1,6 +1,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <avr/pgmspace.h>
 #include "buffer.h"
 
 #define USART_BAUDRATE 19200
@@ -38,10 +39,18 @@ void serial_write( char data )
 
 void serial_print( char* data )
 {
-  while ( *data )
-  {
-    serial_write( *data++ );
-  }
+   uint8_t v;
+   while ((v = *data++)) {
+        serial_write(v);
+   }
+}
+
+void serial_print_P( const char* data )
+{
+   uint8_t v;
+   while ((v = pgm_read_byte(data++))) {
+        serial_write(v);
+   }
 }
 
 static const char* hex = "0123456789ABCDEF";
@@ -54,6 +63,12 @@ void serial_printByte( unsigned char data )
 void serial_println( char* data )
 {
   serial_print( data );
+  serial_write( '\n' );
+}
+
+void serial_println_P( const char* data )
+{
+  serial_print_P( data );
   serial_write( '\n' );
 }
 

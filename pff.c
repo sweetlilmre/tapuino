@@ -1158,7 +1158,6 @@ FRESULT pf_chdir (
 	DIR dj;
 	FATFS *fs = FatFs;
 
-
 	if (!fs) {				/* Check file system */
 		res = FR_NOT_ENABLED;
 	} else {
