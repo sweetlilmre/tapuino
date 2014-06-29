@@ -10,11 +10,6 @@ BYTE g_pendingCommand = COMMAND_IDLE;
 BYTE g_curCommand = COMMAND_IDLE;
 BYTE g_exitFlag = 0;
 
-void responseCallback(char* msg)
-{
-  serial_println(msg);
-}
-
 BYTE player_handleInput(char ch)
 {
   if (ch >= 'a' && ch <= 'z')
@@ -43,6 +38,12 @@ BYTE player_handleInput(char ch)
         case 'P':
         {
           g_pendingCommand = COMMAND_PREVIOUS;
+          g_recvState = RECV_WAIT_DATA;
+          break;
+        }
+        case 'A':
+        {
+          g_pendingCommand = COMMAND_ABORT;
           g_recvState = RECV_WAIT_DATA;
           break;
         }
@@ -77,7 +78,7 @@ BYTE player_handleInput(char ch)
   return(0);
 }
 
-unsigned char inputCallback()
+unsigned char input_callback()
 {
   if (serial_available() > 0)
   {

@@ -78,7 +78,7 @@ void lcd_line(char* msg, int line, uint8_t usepgm)
 {
   char buffer[MAX_LCD_LINE_LEN + 1] = {0};
   int len;
-  strncpy_P(buffer, S_MAXBLANKLINE, MAX_LCD_LINE_LEN);
+  strncpy_P(buffer, S_MAX_BLANK_LINE, MAX_LCD_LINE_LEN);
   
   lcd_setCursor(0, line);
   if (usepgm) {
@@ -97,7 +97,7 @@ void lcd_title(char* msg)
   lcd_line(msg, 0, 0);
 }
 
-void lcd_titleP(const char* msg)
+void lcd_title_P(const char* msg)
 {
   lcd_line(msg, 0, 1);
 }
@@ -107,7 +107,7 @@ void lcd_status(char* msg)
   lcd_line(msg, 1, 0);
 }
 
-void lcd_statusP(const char* msg)
+void lcd_status_P(const char* msg)
 {
   lcd_line(msg, 1, 1);
 }
@@ -133,6 +133,10 @@ int get_num_files(FILINFO* pfile_info)
       num_files++;
     }
   }
+  // add faked '..' entry for traversal
+  if (g_fs.cdir != 0) {
+    num_files ++;
+  }
   return num_files;
 }
 
@@ -146,6 +150,20 @@ int get_file_at_index(FILINFO* pfile_info, int index) {
   // rewind directory to first file
   if (pf_readdir(&g_dir, 0) != FR_OK) {
     return 0;
+  }
+
+  // are we in the root dir?
+  if (g_fs.cdir != 0)
+    // and looking for the first indes?
+    if (index == 0) {
+      // then add the fake '..' entry and return
+      memset(pfile_info, 0, sizeof(FILINFO));
+      pfile_info->fattrib = AM_DIR;
+      strcpy_P(pfile_info->fname, S_UP_A_DIR);
+      return 1;
+    } else {
+    // otherwise decrement the index to point to the actual file we want
+    index--;
   }
   
   while(1) {
@@ -217,7 +235,7 @@ ISR(TIMER1_COMPA_vect) {
   }
 }
 
-void timer_setup() {
+void signal_timer_setup() {
   TCCR1A = 0x00;   // clear timer registers
   TCCR1B = 0x00;
   TIMSK1 = 0x00;
@@ -225,17 +243,17 @@ void timer_setup() {
   TCCR1B |=  _BV(CS11) | _BV(WGM12);  //prescaller 8 = 2 MHZ
 }
 
-void timer_start() {
+void signal_timer_start() {
   OCR1A = 0xFFFF;
   TCNT1 = 0;
   TIMSK1 |=  _BV(OCIE1A);
 }
 
-void timer_stop() {
+void signal_timer_stop() {
   TIMSK1 &= ~_BV(OCIE1A);
 }
 
-BYTE play_file(char* pFile)
+int play_file(char* pFile)
 {
   FRESULT res;
   WORD br;
@@ -244,8 +262,8 @@ BYTE play_file(char* pFile)
   res = pf_open(pFile);
   if (res != FR_OK)
   {
-    lcd_titleP(S_OPENFAILED);
-    return(1);
+    lcd_title_P(S_OPEN_FAILED);
+    return 0;
   }
 
   // Initialize with very short pulses in case the TAP file
@@ -255,14 +273,14 @@ BYTE play_file(char* pFile)
   res = pf_read((void*) g_fatBuffer, FAT_BUF_SIZE, &br);
   if (res != FR_OK)
   {
-    lcd_titleP(S_READFAILED);
-    return(1);
+    lcd_title_P(S_READ_FAILED);
+    return 0;
   }  
   
-  if (strncmp((const char*) g_fatBuffer, "C64-TAPE-RAW", 12) != 0)
+  if (strncmp_P((const char*) g_fatBuffer, S_TAP_MAGIC_C64, 12) != 0)
   {
-    lcd_titleP(S_INVALIDTAP);
-    return 1;
+    lcd_title_P(S_INVALID_TAP);
+    return 0;
   }
   
   // Start send-ISR
@@ -273,14 +291,18 @@ BYTE play_file(char* pFile)
   g_readIdx = 20; // Skip header
   g_halfWave = 0;
 
-  lcd_titleP(S_LOADING);
-  timer_start();
+  lcd_title_P(S_LOADING);
+  signal_timer_start();
 
   while (br > 0) {
     // Wait until ISR is in the new half of the buffer
     while ((g_readIdx & 0x80) == (g_writeIdx & 0x80)) ;
     pf_read((void*) g_fatBuffer + g_writeIdx, 128, &br);
     lcd_spinner();
+    input_callback();
+    if (g_curCommand == COMMAND_ABORT) {
+      break;
+    }
     g_writeIdx += 128;
   }
 
@@ -288,16 +310,20 @@ BYTE play_file(char* pFile)
   // but failed -> need to wait until ISR is in new half, but
   // g_writeIdx was incremented unconditionally -> wait until
   // ISR has left g_writeIdx-half of buffer)
-  while (((g_readIdx & 0x80) == (g_writeIdx & 0x80)) && MOTOR_IS_ON()) ;
+  while (((g_readIdx & 0x80) == (g_writeIdx & 0x80)) && MOTOR_IS_ON() && (g_curCommand != COMMAND_ABORT)) ;
 
-  timer_stop();
+  signal_timer_stop();
 
   SENSE_OFF();
   TAPE_READ_LOW();
-  lcd_titleP(S_LOADCOMPLETE);
+  if (g_curCommand == COMMAND_ABORT) {
+    lcd_title_P(S_LOADING_ABORTED);
+  } else {
+    lcd_title_P(S_LOADING_COMPLETE);
+  }
 
   g_curCommand = COMMAND_IDLE;
-  return(0);
+  return 1;
 }
 
 int player_hardwareSetup(void)
@@ -310,7 +336,7 @@ int player_hardwareSetup(void)
   MOTOR_DDR &= ~_BV(MOTOR_PIN);
   MOTOR_PORT |= _BV(MOTOR_PIN);
   
-  timer_setup();
+  signal_timer_setup();
   
   SPI_Init();
   SPI_Speed_Slow();
@@ -322,7 +348,7 @@ int player_hardwareSetup(void)
   lcd_begin(0x27, 20, 4, LCD_5x8DOTS);
   lcd_backlight();
   lcd_createChar(0, backslashChar);
-  lcd_titleP(S_INIT);
+  lcd_title_P(S_INIT);
     
   res = pf_mount(&g_fs);
   if (res == FR_OK)
@@ -331,7 +357,7 @@ int player_hardwareSetup(void)
   }
   else
   {
-    lcd_titleP(S_INITFAILED);
+    lcd_title_P(S_INIT_FAILED);
   }
 
   return(res == FR_OK);
@@ -354,19 +380,19 @@ void player_run()
 
   if (!player_hardwareSetup())
   {
-    lcd_titleP(S_INITFAILED);
+    lcd_title_P(S_INIT_FAILED);
     return;
   }
   
   //if (!find_first_file(&file_info))
   if ((num_files = get_num_files(&file_info)) == 0)
   {
-    lcd_titleP(S_NOFILES);
+    lcd_title_P(S_NO_FILES_FOUND);
     return;
   }
-  lcd_titleP(S_SELECTFILE);
+  lcd_title_P(S_SELECT_FILE);
   if (!get_file_at_index(&file_info, cur_file_index)) {
-    lcd_titleP(S_NOFILES);
+    lcd_title_P(S_NO_FILES_FOUND);
   }
   lcd_status(file_info.fname);
 
@@ -379,10 +405,11 @@ void player_run()
         if (file_info.fattrib & AM_DIR) {
           if (change_dir(file_info.fname) == FR_OK) {
             num_files = get_num_files(&file_info);
+            cur_file_index = 0;
             get_file_at_index(&file_info, cur_file_index);
             lcd_status(file_info.fname);
           } else {
-            lcd_statusP(S_CHANGEDIRERROR);
+            lcd_status_P(S_DIRECTORY_ERROR);
           }
         } else {
           play_file(file_info.fname);
@@ -411,7 +438,7 @@ void player_run()
         break;
       }
       default:
-        inputCallback();
+        input_callback();
       break;
     }
   }

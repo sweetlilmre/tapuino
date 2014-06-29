@@ -6,13 +6,9 @@
 #define COMMAND_SELECT      1
 #define COMMAND_NEXT        2
 #define COMMAND_PREVIOUS    3
+#define COMMAND_ABORT       4
 
-
-#define CMD_ARG_MAX 12
-
-BYTE player_handleInput(char ch);
-unsigned char inputCallback();
-void responseCallback(char* msg);
+unsigned char input_callback();
 
 extern BYTE g_curCommand;
 extern BYTE g_exitFlag;
