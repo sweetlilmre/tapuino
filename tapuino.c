@@ -76,9 +76,9 @@ void lcd_spinner() {
 
 void lcd_line(char* msg, int line, uint8_t usepgm)
 {
-  char buffer[21] = {0};
+  char buffer[MAX_LCD_LINE_LEN + 1] = {0};
   int len;
-  strncpy(buffer, "                    ", MAX_LCD_LINE_LEN);
+  strncpy_P(buffer, S_MAXBLANKLINE, MAX_LCD_LINE_LEN);
   
   lcd_setCursor(0, line);
   if (usepgm) {
@@ -125,7 +125,7 @@ int get_num_files(FILINFO* pfile_info)
   
   while(1) {
     pfile_info->fname[0] = 0;
-    if (pf_readdir(&g_dir, pfile_info) != FR_OK || !pfile_info->fname[0]) {
+    if ((pf_readdir(&g_dir, pfile_info) != FR_OK) || !pfile_info->fname[0]) {
       break;
     }
 
@@ -133,92 +133,35 @@ int get_num_files(FILINFO* pfile_info)
       num_files++;
     }
   }
-  return(num_files);
+  return num_files;
 }
 
 int get_file_at_index(FILINFO* pfile_info, int index) {
   int cur_file_index = 0;
 
   if (!pfile_info) {
-    return(0);
+    return 0;
   }
- // rewind directory to first file
+
+  // rewind directory to first file
   if (pf_readdir(&g_dir, 0) != FR_OK) {
-    lcd_statusP(S_READFAILED);
     return 0;
   }
   
   while(1) {
     pfile_info->fname[0] = 0;
-    if (pf_readdir(&g_dir, pfile_info) != FR_OK || !pfile_info->fname[0]) {
-    lcd_statusP(S_READFAILED);
+    if ((pf_readdir(&g_dir, pfile_info) != FR_OK) || !pfile_info->fname[0]) {
       break;
     }
 
     if (!(pfile_info->fattrib & INVALID_FILE_ATTR)) {
-      cur_file_index++;
       if (cur_file_index == index) {
-        return(1);
+        return 1;
       }
     }
+    cur_file_index++;
   }
-  return(0);  
-  
-}
-
-
-int find_first_file(FILINFO* pfile_info) {
-  if (!pfile_info) {
-    return(0);
-  }
-  // rewind directory to first file
-  pf_readdir(&g_dir, 0);
-  
-  while(1) {
-    pfile_info->fname[0] = 0;
-    if (pf_readdir(&g_dir, pfile_info) != FR_OK || !pfile_info->fname[0]) {
-      break;
-    }
-
-    if (!(pfile_info->fattrib & INVALID_FILE_ATTR)) {
-      lcd_status(pfile_info->fname);
-      return(1);
-    }
-  }
-  return(0);
-}
-
-int find_next_file(FILINFO* pfile_info)
-{
-  FRESULT res;
-  BYTE count = 0;
-
-  if (!pfile_info) {
-    return(0);
-  }
-  
-  while(1) {
-    pfile_info->fname[0] = 0;
-    res = pf_readdir(&g_dir, pfile_info);
-    if (res != FR_OK) {
-      break;
-    }
-    
-    if (!pfile_info->fname[0]) {
-      if (count++ < 1) {
-        // rewind directory to first file and start from the top
-        pf_readdir(&g_dir, 0);
-        continue;
-      }
-      return(0);
-    }
-
-    if (!(pfile_info->fattrib & INVALID_FILE_ATTR)) {
-      lcd_status(pfile_info->fname);
-      return(1);
-    }
-  }
-  return(0);
+  return 0;  
 }
 
 ISR(TIMER1_COMPA_vect) {
@@ -449,7 +392,7 @@ void player_run()
       }
       case COMMAND_NEXT:
       {
-        if (++cur_file_index > num_files) {
+        if (++cur_file_index >= num_files) {
           cur_file_index = 0;
         }
         get_file_at_index(&file_info, cur_file_index);
