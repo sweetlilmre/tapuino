@@ -73,6 +73,10 @@ void lcd_spinner() {
   }
 }
 
+void lcd_show_dir() {
+  lcd_setCursor(MAX_LCD_LINE_LEN - 1, 1);
+  lcd_write('D');
+}
 
 void lcd_line(char* msg, int line, uint8_t usepgm)
 {
@@ -99,7 +103,7 @@ void lcd_title(char* msg)
 
 void lcd_title_P(const char* msg)
 {
-  lcd_line(msg, 0, 1);
+  lcd_line((char*)msg, 0, 1);
 }
 
 void lcd_status(char* msg)
@@ -109,7 +113,7 @@ void lcd_status(char* msg)
 
 void lcd_status_P(const char* msg)
 {
-  lcd_line(msg, 1, 1);
+  lcd_line((char*)msg, 1, 1);
 }
 
 int get_num_files(FILINFO* pfile_info)
@@ -153,7 +157,7 @@ int get_file_at_index(FILINFO* pfile_info, int index) {
   }
 
   // are we in the root dir?
-  if (g_fs.cdir != 0)
+  if (g_fs.cdir != 0) {
     // and looking for the first indes?
     if (index == 0) {
       // then add the fake '..' entry and return
@@ -162,8 +166,9 @@ int get_file_at_index(FILINFO* pfile_info, int index) {
       strcpy_P(pfile_info->fname, S_UP_A_DIR);
       return 1;
     } else {
-    // otherwise decrement the index to point to the actual file we want
-    index--;
+      // otherwise decrement the index to point to the actual file we want
+      index--;
+    }
   }
   
   while(1) {
@@ -322,6 +327,11 @@ int play_file(char* pFile)
     lcd_title_P(S_LOADING_COMPLETE);
   }
 
+  for (br = 0; br < 100; br++) {
+    lcd_spinner();
+    _delay_ms(20);
+  }
+
   g_curCommand = COMMAND_IDLE;
   return 1;
 }
@@ -392,10 +402,15 @@ void player_run()
   }
   lcd_title_P(S_SELECT_FILE);
   if (!get_file_at_index(&file_info, cur_file_index)) {
+    // shouldn't happen...
     lcd_title_P(S_NO_FILES_FOUND);
+    return;
   }
   lcd_status(file_info.fname);
-
+  if (file_info.fattrib & AM_DIR) {
+    lcd_show_dir();
+  }
+        
   while(1)
   {
     switch(g_curCommand)
@@ -408,11 +423,14 @@ void player_run()
             cur_file_index = 0;
             get_file_at_index(&file_info, cur_file_index);
             lcd_status(file_info.fname);
+            lcd_show_dir();
           } else {
             lcd_status_P(S_DIRECTORY_ERROR);
           }
         } else {
           play_file(file_info.fname);
+          lcd_title_P(S_SELECT_FILE);
+          lcd_status(file_info.fname);
         }
         g_curCommand = COMMAND_IDLE;
         break;
@@ -424,6 +442,9 @@ void player_run()
         }
         get_file_at_index(&file_info, cur_file_index);
         lcd_status(file_info.fname);
+        if (file_info.fattrib & AM_DIR) {
+          lcd_show_dir();
+        }
         g_curCommand = COMMAND_IDLE;
         break;
       }
@@ -434,6 +455,9 @@ void player_run()
         }
         get_file_at_index(&file_info, cur_file_index);
         lcd_status(file_info.fname);
+        if (file_info.fattrib & AM_DIR) {
+          lcd_show_dir();
+        }
         g_curCommand = COMMAND_IDLE;
         break;
       }
