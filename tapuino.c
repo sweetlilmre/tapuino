@@ -6,17 +6,19 @@
 #include <stdlib.h>
 
 #include "integer.h"
+#include "config.h"
+
 #include "spi.h"
 #include "pff.h"
 #include "diskio.h"
 #include "serial.h"
 #include "comms.h"
 #include "lcd.h"
+#include "lcdutils.h"
 #include "memstrings.h"
-#include "tapuino.h"
 
 
-#define FAT_BUF_SIZE 256
+
 #define DEFAULT_DIR "/"
 #define INVALID_FILE_ATTR   (AM_LFN | AM_VOL)
 
@@ -40,81 +42,34 @@
 #define MOTOR_PINS          PIND
 #define MOTOR_IS_ON()       (MOTOR_PINS & _BV(MOTOR_PIN))
 
-#define MAX_LCD_LINE_LEN    20
+#define C64_CYCLES_PAL      985248
+#define C64_CYCLES_NTSC     1022730
+
+#ifndef USE_NTSC_TIMING
+  #define CYCLE_MULT_RAW    (1000000 / C64_CYCLES_PAL)
+#else
+  #define CYCLE_MULT_RAW    (1000000 / C64_CYCLES_NTSC)
+#endif
+
+#define CYCLE_MULT_8        (CYCLE_MULT_RAW * 8)
+
+// max TAP delay is a 24-bit value i.e. 0xFFFFFF cycles
+// we need this constant to determine if the loader has switched off the motor before the tap has completed
+// which would cause the code to enter an endless loop (when the motor is off the buffers do not progress)
+// so we check during the buffer wait loop to see if we have exceeded the maximum delay time and exit if so.
+#define MAX_SIGNAL_CYCLES     (CYCLE_MULT_RAW * 0xFFFFFF * 2)
 
 static FATFS g_fs;
 
 static DIR g_dir;
 
-uint8_t g_fatBuffer[256];
+uint8_t g_fat_buffer[FAT_BUF_SIZE];
 
-static volatile uint8_t g_readIdx;
-static volatile uint8_t g_halfWave;
-static volatile uint8_t g_writeIdx;
+static volatile uint8_t g_read_index;
+static volatile uint8_t g_signal_2nd_half;
+static volatile uint8_t g_write_index;
+static volatile uint32_t g_total_timer_count;
 
-uint8_t backslashChar[8] = {
-    0b00000,
-    0b10000,
-    0b01000,
-    0b00100,
-    0b00010,
-    0b00001,
-    0b00000,
-    0b00000
-};
-
-void lcd_spinner() {
-  static uint8_t indicators[] = {'|', '/', '-', 0};
-  static uint8_t pos = 0;
-  lcd_setCursor(MAX_LCD_LINE_LEN - 1, 0);
-  lcd_write(indicators[pos++]);
-  if (pos > 3) {
-    pos = 0;
-  }
-}
-
-void lcd_show_dir() {
-  lcd_setCursor(MAX_LCD_LINE_LEN - 1, 1);
-  lcd_write('D');
-}
-
-void lcd_line(char* msg, int line, uint8_t usepgm)
-{
-  char buffer[MAX_LCD_LINE_LEN + 1] = {0};
-  int len;
-  strncpy_P(buffer, S_MAX_BLANK_LINE, MAX_LCD_LINE_LEN);
-  
-  lcd_setCursor(0, line);
-  if (usepgm) {
-    len = strlen_P(msg);
-    memcpy_P(buffer, msg, len > MAX_LCD_LINE_LEN ? MAX_LCD_LINE_LEN : len);
-  } else {
-    len = strlen(msg);
-    memcpy(buffer, msg, len > MAX_LCD_LINE_LEN ? MAX_LCD_LINE_LEN : len);
-  }
-  lcd_print(buffer);
-  serial_println(buffer);
-}
-
-void lcd_title(char* msg)
-{
-  lcd_line(msg, 0, 0);
-}
-
-void lcd_title_P(const char* msg)
-{
-  lcd_line((char*)msg, 0, 1);
-}
-
-void lcd_status(char* msg)
-{
-  lcd_line(msg, 1, 0);
-}
-
-void lcd_status_P(const char* msg)
-{
-  lcd_line((char*)msg, 1, 1);
-}
 
 int get_num_files(FILINFO* pfile_info)
 {
@@ -187,53 +142,59 @@ int get_file_at_index(FILINFO* pfile_info, int index) {
   return 0;  
 }
 
+// timer1 is running at 2MHz or 0.5 uS per tick.
+// signal values are measured in uS, so OCR1A is set to the value from the TAP file (converted into uS) for each signal half
+// i.e. TAP value converted to uS * 2 == full signal length
 ISR(TIMER1_COMPA_vect) {
   static unsigned long pulse_length = 0;
   static unsigned long pulse_length_save;
   unsigned long tap_data;
   
+  g_total_timer_count += OCR1A;
+  
   if (!MOTOR_IS_ON()) {
     return;
   }
   
-  if (g_halfWave) {               // 2nd half of the signal
-    if (pulse_length > 0xFFFF) {     // check to see if its bigger than 16 bits
+  if (g_signal_2nd_half) {                // 2nd half of the signal
+    if (pulse_length > 0xFFFF) {          // check to see if its bigger than 16 bits
       pulse_length -= 0xFFFF;
       OCR1A = 0xFFFF;
     } else {
       OCR1A = (unsigned short) pulse_length;
-      pulse_length = 0;         // clear this!!!! for 1st half check so that the next data is loaded!
-      g_halfWave = 0;           // next time round switch to 1st half
+      pulse_length = 0;                   // clear this, for 1st half check so that the next data is loaded
+      g_signal_2nd_half = 0;              // next time round switch to 1st half
     }
-    TAPE_READ_HIGH();           // set the signal high
-  } else {                        // 1st half of the signal
-    if (pulse_length) {                 // do we have any pulse left?
-      if (pulse_length > 0xFFFF) {      // check to see if its bigger than 16 bits
-        pulse_length -= 0xFFFF;
-        OCR1A = 0xFFFF;
-      } else {
-        OCR1A = (unsigned short) pulse_length;
-        pulse_length = pulse_length_save;   // restore pulse length for the 2nd half of the signal
-        g_halfWave = 1;                     // next time round switch to 2nd half
-      }
-    } else {
-      tap_data = (unsigned long) g_fatBuffer[g_readIdx++];
-      if (tap_data == 0) {
-        pulse_length =  (unsigned long) g_fatBuffer[g_readIdx++];
-        pulse_length |= ((unsigned long) g_fatBuffer[g_readIdx++]) << 8;
-        pulse_length |= ((unsigned long) g_fatBuffer[g_readIdx++]) << 16;
-        pulse_length *= 1.015;
-      } else {
-        pulse_length = tap_data * 8.12;
-      }
-      pulse_length_save = pulse_length; // save this for the 2nd half of the wave
-      if (pulse_length > 0xFFFF) {     // check to see if its bigger than 16 bits
+    TAPE_READ_HIGH();                     // set the signal high
+  } else {                                // 1st half of the signal
+    if (pulse_length) {                   // do we have any pulse left?
+      if (pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
         pulse_length -= 0xFFFF;
         OCR1A = 0xFFFF;
       } else {
         OCR1A = (unsigned short) pulse_length;
         pulse_length = pulse_length_save; // restore pulse length for the 2nd half of the signal
-        g_halfWave = 1;                   // next time round switch to 2nd half
+        g_signal_2nd_half = 1;            // next time round switch to 2nd half
+      }
+    } else {
+      g_total_timer_count = 0;
+      tap_data = (unsigned long) g_fat_buffer[g_read_index++];
+      if (tap_data == 0) {
+        pulse_length =  (unsigned long) g_fat_buffer[g_read_index++];
+        pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
+        pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
+        pulse_length *= 1.015;
+      } else {
+        pulse_length = tap_data * 8.12;
+      }
+      pulse_length_save = pulse_length;   // save this for the 2nd half of the wave
+      if (pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
+        pulse_length -= 0xFFFF;
+        OCR1A = 0xFFFF;
+      } else {
+        OCR1A = (unsigned short) pulse_length;
+        pulse_length = pulse_length_save; // restore pulse length for the 2nd half of the signal
+        g_signal_2nd_half = 1;            // next time round switch to 2nd half
       }
       TAPE_READ_LOW();
     }
@@ -251,6 +212,7 @@ void signal_timer_setup() {
 void signal_timer_start() {
   OCR1A = 0xFFFF;
   TCNT1 = 0;
+  g_total_timer_count = 0;
   TIMSK1 |=  _BV(OCIE1A);
 }
 
@@ -258,13 +220,12 @@ void signal_timer_stop() {
   TIMSK1 &= ~_BV(OCIE1A);
 }
 
-int play_file(char* pFile)
+int play_file(FILINFO* pfile_info)
 {
   FRESULT res;
   WORD br;
-  g_exitFlag = 0;
 
-  res = pf_open(pFile);
+  res = pf_open(pfile_info->fname);
   if (res != FR_OK)
   {
     lcd_title_P(S_OPEN_FAILED);
@@ -273,16 +234,16 @@ int play_file(char* pFile)
 
   // Initialize with very short pulses in case the TAP file
   // is smaller than the buffer
-  memset(g_fatBuffer,1,256);
+  memset(g_fat_buffer,1,256);
 
-  res = pf_read((void*) g_fatBuffer, FAT_BUF_SIZE, &br);
+  res = pf_read((void*) g_fat_buffer, FAT_BUF_SIZE, &br);
   if (res != FR_OK)
   {
     lcd_title_P(S_READ_FAILED);
     return 0;
-  }  
+  }
   
-  if (strncmp_P((const char*) g_fatBuffer, S_TAP_MAGIC_C64, 12) != 0)
+  if (strncmp_P((const char*) g_fat_buffer, S_TAP_MAGIC_C64, 12) != 0)
   {
     lcd_title_P(S_INVALID_TAP);
     return 0;
@@ -292,30 +253,37 @@ int play_file(char* pFile)
   TAPE_READ_LOW();
   SENSE_ON();
   
-  g_writeIdx = 0;
-  g_readIdx = 20; // Skip header
-  g_halfWave = 0;
+  g_write_index = 0;
+  g_read_index = 20; // Skip header
+  g_signal_2nd_half = 0;
 
   lcd_title_P(S_LOADING);
   signal_timer_start();
 
   while (br > 0) {
     // Wait until ISR is in the new half of the buffer
-    while ((g_readIdx & 0x80) == (g_writeIdx & 0x80)) ;
-    pf_read((void*) g_fatBuffer + g_writeIdx, 128, &br);
-    lcd_spinner();
+    while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
+      input_callback();
+      lcd_spinner(50000);
+      // if the load was aborted or the C64 stopped the motor for longer than the longest possible signal time
+      // then we need to get out of here
+      if ((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_curCommand == COMMAND_ABORT)) {
+        break;
+      }
+    }
+    pf_read((void*) g_fat_buffer + g_write_index, 128, &br);
     input_callback();
     if (g_curCommand == COMMAND_ABORT) {
       break;
     }
-    g_writeIdx += 128;
+    g_write_index += 128;
   }
 
   // Wait once more (last read tried to read new half of buffer,
   // but failed -> need to wait until ISR is in new half, but
-  // g_writeIdx was incremented unconditionally -> wait until
-  // ISR has left g_writeIdx-half of buffer)
-  while (((g_readIdx & 0x80) == (g_writeIdx & 0x80)) && MOTOR_IS_ON() && (g_curCommand != COMMAND_ABORT)) ;
+  // g_write_index was incremented unconditionally -> wait until
+  // ISR has left g_write_index-half of buffer)
+  while (((g_read_index & 0x80) == (g_write_index & 0x80)) && MOTOR_IS_ON() && (g_curCommand != COMMAND_ABORT)) ;
 
   signal_timer_stop();
 
@@ -328,7 +296,7 @@ int play_file(char* pFile)
   }
 
   for (br = 0; br < 100; br++) {
-    lcd_spinner();
+    lcd_spinner(0);
     _delay_ms(20);
   }
 
@@ -355,9 +323,7 @@ int player_hardwareSetup(void)
   _delay_ms(200);
   SPI_Speed_Fast();
   serial_init();
-  lcd_begin(0x27, 20, 4, LCD_5x8DOTS);
-  lcd_backlight();
-  lcd_createChar(0, backslashChar);
+  lcd_setup();
   lcd_title_P(S_INIT);
     
   res = pf_mount(&g_fs);
@@ -428,7 +394,7 @@ void player_run()
             lcd_status_P(S_DIRECTORY_ERROR);
           }
         } else {
-          play_file(file_info.fname);
+          play_file(&file_info);
           lcd_title_P(S_SELECT_FILE);
           lcd_status(file_info.fname);
         }
