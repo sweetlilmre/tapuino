@@ -40,7 +40,7 @@
 #define MOTOR_DDR           DDRD
 #define MOTOR_PIN           4
 #define MOTOR_PINS          PIND
-#define MOTOR_IS_ON()       (MOTOR_PINS & _BV(MOTOR_PIN))
+#define MOTOR_IS_OFF()       (MOTOR_PINS & _BV(MOTOR_PIN))
 
 #define C64_CYCLES_PAL      985248
 #define C64_CYCLES_NTSC     1022730
@@ -152,7 +152,7 @@ ISR(TIMER1_COMPA_vect) {
   
   g_total_timer_count += OCR1A;
   
-  if (!MOTOR_IS_ON()) {
+  if (MOTOR_IS_OFF()) {
     return;
   }
   
@@ -267,7 +267,8 @@ int play_file(FILINFO* pfile_info)
       lcd_spinner(50000);
       // if the load was aborted or the C64 stopped the motor for longer than the longest possible signal time
       // then we need to get out of here
-      if ((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_curCommand == COMMAND_ABORT)) {
+      //((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_curCommand == COMMAND_ABORT))
+      if ((g_curCommand == COMMAND_ABORT)) {
         break;
       }
     }
@@ -283,7 +284,7 @@ int play_file(FILINFO* pfile_info)
   // but failed -> need to wait until ISR is in new half, but
   // g_write_index was incremented unconditionally -> wait until
   // ISR has left g_write_index-half of buffer)
-  while (((g_read_index & 0x80) == (g_write_index & 0x80)) && MOTOR_IS_ON() && (g_curCommand != COMMAND_ABORT)) ;
+  while (((g_read_index & 0x80) == (g_write_index & 0x80)) && !MOTOR_IS_OFF() && (g_curCommand != COMMAND_ABORT)) ;
 
   signal_timer_stop();
 
