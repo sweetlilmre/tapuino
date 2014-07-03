@@ -278,13 +278,14 @@ int play_file(FILINFO* pfile_info)
     lcd_spinner(50000);
     // we need to do the same trick as above, BC's Quest for Tires stops the motor right near the
     // end of the tape, then restarts for the last bit of data, so we can't rely on the motor signal
-    // a better approach might be to see if we have read all the data and then break.
-    if ((g_curCommand == COMMAND_ABORT) || (g_total_timer_count > MAX_SIGNAL_CYCLES) || ((cur_file_pos + g_read_index) >  (tap_file_len+40))) {
+    // a better approach might be to see if we have read all the data and then break. //|| ((cur_file_pos + g_read_index) >  (tap_file_len+40))
+    if ((g_curCommand == COMMAND_ABORT) || (g_total_timer_count > MAX_SIGNAL_CYCLES)) {
       break;
     }
   }
 
   signal_timer_stop();
+  /*
   serial_print("cur_file_pos: ");
   ultoa(cur_file_pos, g_char_buffer, 10);
   serial_println(g_char_buffer);
@@ -293,8 +294,10 @@ int play_file(FILINFO* pfile_info)
   cur_file_pos += g_read_index;
   ultoa(cur_file_pos, g_char_buffer, 10);
   serial_println(g_char_buffer);
-
+*/
   TAPE_READ_LOW();
+  SENSE_OFF();
+
   if (g_curCommand == COMMAND_ABORT) {
     lcd_title_P(S_LOADING_ABORTED);
   } else {
@@ -305,7 +308,6 @@ int play_file(FILINFO* pfile_info)
     lcd_spinner(0);
     _delay_ms(20);
   }
-  SENSE_OFF();
 
   g_curCommand = COMMAND_IDLE;
   return 1;
