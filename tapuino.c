@@ -22,25 +22,6 @@
 #define DEFAULT_DIR "/"
 #define INVALID_FILE_ATTR   (AM_LFN | AM_VOL)
 
-#define SENSE_PORT          PORTD
-#define SENSE_DDR           DDRD
-#define SENSE_PIN           5
-#define SENSE_ON()          SENSE_PORT &= ~_BV(SENSE_PIN)
-#define SENSE_OFF()         SENSE_PORT |=  _BV(SENSE_PIN)
-
-#define TAPE_READ_PORT      PORTD
-#define TAPE_READ_DDR       DDRD
-#define TAPE_READ_PIN       3
-#define TAPE_READ_PINS      PIND
-#define TAPE_READ_LOW()     TAPE_READ_PORT &= ~_BV(TAPE_READ_PIN)
-#define TAPE_READ_HIGH()    TAPE_READ_PORT |=  _BV(TAPE_READ_PIN)
-#define TAPE_READ_TOGGLE()  TAPE_READ_PINS |=  _BV(TAPE_READ_PIN)
-
-#define MOTOR_PORT          PORTD
-#define MOTOR_DDR           DDRD
-#define MOTOR_PIN           4
-#define MOTOR_PINS          PIND
-#define MOTOR_IS_OFF()       (MOTOR_PINS & _BV(MOTOR_PIN))
 
 #define C64_CYCLES_PAL      985248
 #define C64_CYCLES_NTSC     1022730
@@ -220,10 +201,15 @@ void signal_timer_stop() {
   TIMSK1 &= ~_BV(OCIE1A);
 }
 
+void finish_play() {
+}
+
 int play_file(FILINFO* pfile_info)
 {
   FRESULT res;
   WORD br;
+  uint32_t cur_file_pos = 0;
+  uint32_t tap_file_len = pfile_info->fsize;
 
   res = pf_open(pfile_info->fname);
   if (res != FR_OK)
@@ -242,7 +228,7 @@ int play_file(FILINFO* pfile_info)
     lcd_title_P(S_READ_FAILED);
     return 0;
   }
-  
+  cur_file_pos += br;
   if (strncmp_P((const char*) g_fat_buffer, S_TAP_MAGIC_C64, 12) != 0)
   {
     lcd_title_P(S_INVALID_TAP);
@@ -263,16 +249,20 @@ int play_file(FILINFO* pfile_info)
   while (br > 0) {
     // Wait until ISR is in the new half of the buffer
     while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
+      // process input for abort
       input_callback();
+      // feedback to the user
       lcd_spinner(50000);
-      // if the load was aborted or the C64 stopped the motor for longer than the longest possible signal time
-      // then we need to get out of here
-      //((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_curCommand == COMMAND_ABORT))
-      if ((g_curCommand == COMMAND_ABORT)) {
+      
+      // if the C64 stopped the motor for longer than the longest possible signal time
+      // then we need to get out of here. This happens in Rambo First Blood Part II.
+      // The loader seems to stop the tape before the tap file is complete!
+      if ((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_curCommand == COMMAND_ABORT)) {
         break;
       }
     }
     pf_read((void*) g_fat_buffer + g_write_index, 128, &br);
+    cur_file_pos += br;
     input_callback();
     if (g_curCommand == COMMAND_ABORT) {
       break;
@@ -280,15 +270,30 @@ int play_file(FILINFO* pfile_info)
     g_write_index += 128;
   }
 
-  // Wait once more (last read tried to read new half of buffer,
-  // but failed -> need to wait until ISR is in new half, but
-  // g_write_index was incremented unconditionally -> wait until
-  // ISR has left g_write_index-half of buffer)
-  while (((g_read_index & 0x80) == (g_write_index & 0x80)) && !MOTOR_IS_OFF() && (g_curCommand != COMMAND_ABORT)) ;
+  // wait for the remaining buffer to be read.
+  while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
+    // process input for abort
+    input_callback();
+    // feedback to the user
+    lcd_spinner(50000);
+    // we need to do the same trick as above, BC's Quest for Tires stops the motor right near the
+    // end of the tape, then restarts for the last bit of data, so we can't rely on the motor signal
+    // a better approach might be to see if we have read all the data and then break.
+    if ((g_curCommand == COMMAND_ABORT) || (g_total_timer_count > MAX_SIGNAL_CYCLES) || ((cur_file_pos + g_read_index) >  (tap_file_len+40))) {
+      break;
+    }
+  }
 
   signal_timer_stop();
+  serial_print("cur_file_pos: ");
+  ultoa(cur_file_pos, g_char_buffer, 10);
+  serial_println(g_char_buffer);
 
-  SENSE_OFF();
+  serial_print("cur_file_pos + read: ");
+  cur_file_pos += g_read_index;
+  ultoa(cur_file_pos, g_char_buffer, 10);
+  serial_println(g_char_buffer);
+
   TAPE_READ_LOW();
   if (g_curCommand == COMMAND_ABORT) {
     lcd_title_P(S_LOADING_ABORTED);
@@ -300,6 +305,7 @@ int play_file(FILINFO* pfile_info)
     lcd_spinner(0);
     _delay_ms(20);
   }
+  SENSE_OFF();
 
   g_curCommand = COMMAND_IDLE;
   return 1;

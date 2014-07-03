@@ -27,7 +27,8 @@ void lcd_spinner(int32_t wait) {
     return;
   }
   wait_for = 0;
-  lcd_setCursor(MAX_LCD_LINE_LEN - 1, 0);
+  lcd_setCursor(MAX_LCD_LINE_LEN - 2, 0);
+  lcd_write(MOTOR_IS_OFF() ? 'm' : 'M');
   lcd_write(indicators[pos++]);
   if (pos > 3) {
     pos = 0;
