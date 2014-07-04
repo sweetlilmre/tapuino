@@ -1,9 +1,16 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
-#define MAX_LCD_LINE_LEN    20
+#define SPINNER_RATE        25000
+#define LCD_I2C_ADDR        0x27
+#define LCD_NUM_LINES       2
+#define MAX_LCD_LINE_LEN    16
+
+// don't mess with this!
 #define FAT_BUF_SIZE        256
 
+
+// port definitions, change for different wiring
 #define SENSE_PORT          PORTD
 #define SENSE_DDR           DDRD
 #define SENSE_PIN           5
@@ -24,4 +31,11 @@
 #define MOTOR_PINS          PIND
 #define MOTOR_IS_OFF()      (MOTOR_PINS & _BV(MOTOR_PIN))
 
+#define KEYS_READ_PORT      PORTC
+#define KEYS_READ_DDR       DDRC
+#define KEYS_READ_PINS      PINC
+#define KEY_SELECT_PIN      3
+#define KEY_ABORT_PIN       2
+#define KEY_PREV_PIN        1
+#define KEY_NEXT_PIN        0
 #endif

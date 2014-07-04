@@ -37,6 +37,8 @@ void lcd_spinner(int32_t wait) {
 
 void lcd_show_dir() {
   lcd_setCursor(MAX_LCD_LINE_LEN - 1, 1);
+  
+  // right arrow character 
   lcd_write(0b01111110);
 }
 
@@ -73,7 +75,7 @@ void lcd_status_P(const char* msg) {
 }
 
 void lcd_setup() {
-  lcd_begin(0x27, 20, 4, LCD_5x8DOTS);
+  lcd_begin(LCD_I2C_ADDR, MAX_LCD_LINE_LEN, LCD_NUM_LINES, LCD_5x8DOTS);
   lcd_backlight();
   lcd_createChar(0, backslashChar);
 }

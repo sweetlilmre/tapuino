@@ -252,19 +252,19 @@ int play_file(FILINFO* pfile_info)
       // process input for abort
       input_callback();
       // feedback to the user
-      lcd_spinner(50000);
+      lcd_spinner(SPINNER_RATE);
       
       // if the C64 stopped the motor for longer than the longest possible signal time
       // then we need to get out of here. This happens in Rambo First Blood Part II.
-      // The loader seems to stop the tape before the tap file is complete!
-      if ((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_curCommand == COMMAND_ABORT)) {
+      // The loader seems to stop the tape before the tap file is complete.
+      if ((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_cur_command == COMMAND_ABORT)) {
         break;
       }
     }
     pf_read((void*) g_fat_buffer + g_write_index, 128, &br);
     cur_file_pos += br;
     input_callback();
-    if (g_curCommand == COMMAND_ABORT) {
+    if (g_cur_command == COMMAND_ABORT) {
       break;
     }
     g_write_index += 128;
@@ -275,11 +275,11 @@ int play_file(FILINFO* pfile_info)
     // process input for abort
     input_callback();
     // feedback to the user
-    lcd_spinner(50000);
+    lcd_spinner(SPINNER_RATE);
     // we need to do the same trick as above, BC's Quest for Tires stops the motor right near the
     // end of the tape, then restarts for the last bit of data, so we can't rely on the motor signal
-    // a better approach might be to see if we have read all the data and then break. //|| ((cur_file_pos + g_read_index) >  (tap_file_len+40))
-    if ((g_curCommand == COMMAND_ABORT) || (g_total_timer_count > MAX_SIGNAL_CYCLES)) {
+    // a better approach might be to see if we have read all the data and then break. //
+    if ((g_cur_command == COMMAND_ABORT) || (g_total_timer_count > MAX_SIGNAL_CYCLES) || ((cur_file_pos - FAT_BUF_SIZE + g_read_index) >=  tap_file_len)) {
       break;
     }
   }
@@ -298,7 +298,7 @@ int play_file(FILINFO* pfile_info)
   TAPE_READ_LOW();
   SENSE_OFF();
 
-  if (g_curCommand == COMMAND_ABORT) {
+  if (g_cur_command == COMMAND_ABORT) {
     lcd_title_P(S_LOADING_ABORTED);
   } else {
     lcd_title_P(S_LOADING_COMPLETE);
@@ -309,13 +309,15 @@ int play_file(FILINFO* pfile_info)
     _delay_ms(20);
   }
 
-  g_curCommand = COMMAND_IDLE;
+  g_cur_command = COMMAND_IDLE;
   return 1;
 }
 
 int player_hardwareSetup(void)
 {
   FRESULT res;
+  uint8_t tmp;
+  
   SENSE_DDR |= _BV(SENSE_PIN);
   SENSE_OFF();
   TAPE_READ_DDR |= _BV(TAPE_READ_PIN);
@@ -323,21 +325,38 @@ int player_hardwareSetup(void)
   MOTOR_DDR &= ~_BV(MOTOR_PIN);
   MOTOR_PORT |= _BV(MOTOR_PIN);
   
+  KEYS_READ_DDR &= ~_BV(KEY_SELECT_PIN);
+  KEYS_READ_PORT |= _BV(KEY_SELECT_PIN);
+
+  KEYS_READ_DDR &= ~_BV(KEY_ABORT_PIN);
+  KEYS_READ_PORT |= _BV(KEY_ABORT_PIN);
+
+  KEYS_READ_DDR &= ~_BV(KEY_PREV_PIN);
+  KEYS_READ_PORT |= _BV(KEY_PREV_PIN);
+
+  KEYS_READ_DDR &= ~_BV(KEY_NEXT_PIN);
+  KEYS_READ_PORT |= _BV(KEY_NEXT_PIN);
+  
   signal_timer_setup();
   
   SPI_Init();
   SPI_Speed_Slow();
-  SPI_Send (0xFF);
   
-  _delay_ms(200);
-  SPI_Speed_Fast();
   serial_init();
   lcd_setup();
   lcd_title_P(S_INIT);
-    
-  res = pf_mount(&g_fs);
+  
+  // something dodgy in the bootloader caused a fail on cold boot.
+  // retrying here seems to fix it (could just be the bootloader on my cheap Chinese clone?)
+  for (tmp = 0; tmp < 10; tmp++) {
+    res = pf_mount(&g_fs);
+    _delay_ms(200);
+    if (res == FR_OK) break;
+  }
+  
   if (res == FR_OK)
   {
+    SPI_Speed_Fast();
     res = pf_opendir(&g_dir, DEFAULT_DIR);
   }
   else
@@ -388,7 +407,7 @@ void player_run()
         
   while(1)
   {
-    switch(g_curCommand)
+    switch(g_cur_command)
     {
       case COMMAND_SELECT:
       {
@@ -407,7 +426,7 @@ void player_run()
           lcd_title_P(S_SELECT_FILE);
           lcd_status(file_info.fname);
         }
-        g_curCommand = COMMAND_IDLE;
+        g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_NEXT:
@@ -420,7 +439,7 @@ void player_run()
         if (file_info.fattrib & AM_DIR) {
           lcd_show_dir();
         }
-        g_curCommand = COMMAND_IDLE;
+        g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_PREVIOUS:
@@ -433,7 +452,7 @@ void player_run()
         if (file_info.fattrib & AM_DIR) {
           lcd_show_dir();
         }
-        g_curCommand = COMMAND_IDLE;
+        g_cur_command = COMMAND_IDLE;
         break;
       }
       default:

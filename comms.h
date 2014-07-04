@@ -8,9 +8,7 @@
 #define COMMAND_PREVIOUS    3
 #define COMMAND_ABORT       4
 
-unsigned char input_callback();
-
-extern BYTE g_curCommand;
-extern BYTE g_exitFlag;
+void input_callback();
+extern uint8_t g_cur_command;
 
 #endif
