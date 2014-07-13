@@ -1,8 +1,6 @@
-#ifndef PLAYER_H
-#define PLAYER_H
+#ifndef TAPUINO_H
+#define TAPUINO_H
 
-
-void player_run();
-
+void tapuino_run();
 
 #endif

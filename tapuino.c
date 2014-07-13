@@ -261,12 +261,15 @@ int play_file(FILINFO* pfile_info)
         break;
       }
     }
+
+    // exit here for appropriate conditions, this whole mess needs a cleanup 
+    if ((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_cur_command == COMMAND_ABORT)) {
+      break;
+    }
+    
     pf_read((void*) g_fat_buffer + g_write_index, 128, &br);
     cur_file_pos += br;
     input_callback();
-    if (g_cur_command == COMMAND_ABORT) {
-      break;
-    }
     g_write_index += 128;
   }
 
@@ -313,7 +316,7 @@ int play_file(FILINFO* pfile_info)
   return 1;
 }
 
-int player_hardwareSetup(void)
+int tapuino_hardwareSetup(void)
 {
   FRESULT res;
   uint8_t tmp;
@@ -346,7 +349,7 @@ int player_hardwareSetup(void)
   lcd_setup();
   lcd_title_P(S_INIT);
   
-  // something dodgy in the bootloader caused a fail on cold boot.
+  // something (possibly) dodgy in the bootloader causes a fail on cold boot.
   // retrying here seems to fix it (could just be the bootloader on my cheap Chinese clone?)
   for (tmp = 0; tmp < 10; tmp++) {
     res = pf_mount(&g_fs);
@@ -354,13 +357,10 @@ int player_hardwareSetup(void)
     if (res == FR_OK) break;
   }
   
-  if (res == FR_OK)
-  {
+  if (res == FR_OK) {
     SPI_Speed_Fast();
     res = pf_opendir(&g_dir, DEFAULT_DIR);
-  }
-  else
-  {
+  } else {
     lcd_title_P(S_INIT_FAILED);
   }
 
@@ -378,28 +378,27 @@ FRESULT change_dir(char* dir) {
 int num_files = 0;
 int cur_file_index = 0;
 
-void player_run()
+void tapuino_run()
 {
   FILINFO file_info;
 
-  if (!player_hardwareSetup())
-  {
+  if (!tapuino_hardwareSetup()) {
     lcd_title_P(S_INIT_FAILED);
     return;
   }
   
-  //if (!find_first_file(&file_info))
-  if ((num_files = get_num_files(&file_info)) == 0)
-  {
+  if ((num_files = get_num_files(&file_info)) == 0) {
     lcd_title_P(S_NO_FILES_FOUND);
     return;
   }
+  
   lcd_title_P(S_SELECT_FILE);
   if (!get_file_at_index(&file_info, cur_file_index)) {
     // shouldn't happen...
     lcd_title_P(S_NO_FILES_FOUND);
     return;
   }
+
   lcd_status(file_info.fname);
   if (file_info.fattrib & AM_DIR) {
     lcd_show_dir();

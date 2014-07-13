@@ -6,7 +6,7 @@
 
 #define RECV_WAIT_CMD       0
 #define RECV_WAIT_DATA      1
-#define MAX_CHECKS 10
+#define MAX_CHECKS 20
 
 uint8_t g_debounced_state;
 uint8_t g_key_state[MAX_CHECKS] = {0};

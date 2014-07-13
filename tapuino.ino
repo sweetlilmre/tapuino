@@ -5,7 +5,7 @@ extern "C"
 
 void setup()
 {
-  player_run();
+  tapuino_run();
 }
 
 void loop()
