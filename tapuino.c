@@ -323,8 +323,13 @@ int tapuino_hardwareSetup(void)
   
   SENSE_DDR |= _BV(SENSE_PIN);
   SENSE_OFF();
+  
   TAPE_READ_DDR |= _BV(TAPE_READ_PIN);
   TAPE_READ_HIGH();
+  
+  TAPE_WRITE_DDR |= _BV(TAPE_WRITE_PIN);
+  TAPE_WRITE_PORT &= ~_BV(TAPE_WRITE_PIN);
+  
   MOTOR_DDR &= ~_BV(MOTOR_PIN);
   MOTOR_PORT |= _BV(MOTOR_PIN);
   
