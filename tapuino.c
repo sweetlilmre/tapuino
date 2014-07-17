@@ -195,6 +195,7 @@ int play_file(FILINFO* pfile_info)
       // The loader seems to stop the tape before the tap file is complete.
       if ((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_cur_command == COMMAND_ABORT)) {
         g_tap_file_complete = 1;
+        break;
       }
     }
 
