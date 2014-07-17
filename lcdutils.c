@@ -1,10 +1,14 @@
 #include <inttypes.h>
+#include <stdio.h>
 #include <string.h>
 #include "config.h"
 #include "lcd.h"
 #include "lcdutils.h"
 #include "memstrings.h"
 #include "serial.h"
+
+// right arrow character 
+#define DIRECTORY_INDICATOR 0b01111110
 
 char g_char_buffer[MAX_LCD_LINE_LEN + 1] = {0};
 
@@ -19,17 +23,19 @@ uint8_t backslashChar[8] = {
     0b00000
 };
 
-void lcd_spinner(int32_t wait) {
-  static uint8_t indicators[] = {'|', '/', '-', 0};
+
+inline void lcd_spinner(int32_t wait, int perc) {
+  static uint8_t indicators[] = {'|', '/', '-', 1};
   static uint8_t pos = 0;
   static int32_t wait_for = 0;
   if (wait_for++ < wait) {
     return;
   }
   wait_for = 0;
-  lcd_setCursor(MAX_LCD_LINE_LEN - 2, 0);
-  lcd_write(MOTOR_IS_OFF() ? 'm' : 'M');
-  lcd_write(indicators[pos++]);
+  lcd_setCursor(MAX_LCD_LINE_LEN - 7, 0);
+  sprintf(g_char_buffer, "%3d%% %c%c", perc, MOTOR_IS_OFF() ? 'm' : 'M', indicators[pos++]);
+  lcd_print(g_char_buffer);
+
   if (pos > 3) {
     pos = 0;
   }
@@ -38,8 +44,8 @@ void lcd_spinner(int32_t wait) {
 void lcd_show_dir() {
   lcd_setCursor(MAX_LCD_LINE_LEN - 1, 1);
   
-  // right arrow character 
-  lcd_write(0b01111110);
+  
+  lcd_write(DIRECTORY_INDICATOR);
 }
 
 void lcd_line(char* msg, int line, uint8_t usepgm) {
@@ -77,5 +83,6 @@ void lcd_status_P(const char* msg) {
 void lcd_setup() {
   lcd_begin(LCD_I2C_ADDR, MAX_LCD_LINE_LEN, LCD_NUM_LINES, LCD_5x8DOTS);
   lcd_backlight();
-  lcd_createChar(0, backslashChar);
+  // can't define this as the zeroth character as zero is null in sprintf! :)
+  lcd_createChar(1, backslashChar);
 }

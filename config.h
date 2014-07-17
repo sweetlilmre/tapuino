@@ -1,7 +1,7 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
-#define SPINNER_RATE        25000
+#define SPINNER_RATE        12500
 #define LCD_I2C_ADDR        0x27
 #define LCD_NUM_LINES       2
 #define MAX_LCD_LINE_LEN    16

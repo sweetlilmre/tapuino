@@ -3,7 +3,7 @@
 
 void lcd_setup();
 
-void lcd_spinner(int32_t wait);
+inline void lcd_spinner(int32_t wait, int perc);
 void lcd_show_dir();
 void lcd_title(char* msg);
 void lcd_title_P(const char* msg);
