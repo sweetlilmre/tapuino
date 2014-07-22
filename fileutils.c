@@ -1,14 +1,28 @@
 #include <inttypes.h>
 
-#include "pff.h"
+#include "ff.h"
 #include "config.h"
 
 #define DEFAULT_DIR "/"
-#define INVALID_FILE_ATTR   (AM_LFN | AM_VOL)
+#define INVALID_FILE_ATTR   (AM_VOL)
 
 FATFS g_fs;
 DIR g_dir;
+FIL g_fil;
 uint8_t g_fat_buffer[FAT_BUF_SIZE];
+
+/*---------------------------------------------------------*/
+/* User Provided RTC Function called by FatFs module       */
+
+DWORD get_fattime (void) {
+	/* Returns current time packed into a DWORD variable */
+	return	  ((DWORD)(2014 - 1980) << 25)	/* Year 2013 */
+			| ((DWORD)6 << 21)				/* Month 7 */
+			| ((DWORD)1 << 16)				/* Mday 28 */
+			| ((DWORD)0 << 11)				/* Hour 0 */
+			| ((DWORD)0 << 5)				/* Min 0 */
+			| ((DWORD)0 >> 1);				/* Sec 0 */
+}
 
 int get_num_files(FILINFO* pfile_info) {
   int num_files = 0;
@@ -16,14 +30,18 @@ int get_num_files(FILINFO* pfile_info) {
     return 0;
   }
   // rewind directory to first file
-  if (pf_readdir(&g_dir, 0) != FR_OK) {
+  if (f_readdir(&g_dir, 0) != FR_OK) {
     return 0;
   }
   
   while(1) {
     pfile_info->fname[0] = 0;
-    if ((pf_readdir(&g_dir, pfile_info) != FR_OK) || !pfile_info->fname[0]) {
+    if ((f_readdir(&g_dir, pfile_info) != FR_OK) || !pfile_info->fname[0]) {
       break;
+    }
+
+    if (pfile_info->fname[0] == '.') {
+      continue;
     }
 
     if (!(pfile_info->fattrib & INVALID_FILE_ATTR)) {
@@ -41,14 +59,18 @@ int get_file_at_index(FILINFO* pfile_info, int index) {
   }
 
   // rewind directory to first file
-  if (pf_readdir(&g_dir, 0) != FR_OK) {
+  if (f_readdir(&g_dir, 0) != FR_OK) {
     return 0;
   }
 
   while(1) {
     pfile_info->fname[0] = 0;
-    if ((pf_readdir(&g_dir, pfile_info) != FR_OK) || !pfile_info->fname[0]) {
+    if ((f_readdir(&g_dir, pfile_info) != FR_OK) || !pfile_info->fname[0]) {
       break;
+    }
+
+    if (pfile_info->fname[0] == '.') {
+      continue;
     }
 
     if (!(pfile_info->fattrib & INVALID_FILE_ATTR)) {
@@ -64,8 +86,8 @@ int get_file_at_index(FILINFO* pfile_info, int index) {
 
 FRESULT change_dir(char* dir) {
   FRESULT fr = FR_OK;
-  if ((fr = pf_chdir(dir)) == FR_OK) {
-    return pf_opendir( &g_dir, "." );
+  if ((fr = f_chdir(dir)) == FR_OK) {
+    return f_opendir( &g_dir, "." );
   }
   return fr;
 }

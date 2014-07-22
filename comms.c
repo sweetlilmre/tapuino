@@ -8,7 +8,7 @@
 #define RECV_WAIT_DATA      1
 #define MAX_CHECKS 20
 
-uint8_t g_debounced_state;
+uint8_t g_debounced_state = 0;
 uint8_t g_key_state[MAX_CHECKS] = {0};
 uint8_t g_debounce_index = 0;
 uint8_t g_recvState = RECV_WAIT_CMD;
@@ -29,6 +29,7 @@ void debounce_switches() {
     g_debounce_index = 0;
   }
 }
+
 void player_handleInputKeys() {
   uint8_t tmp_command = COMMAND_IDLE;
   debounce_switches();

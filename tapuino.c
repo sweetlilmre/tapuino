@@ -9,7 +9,7 @@
 #include "config.h"
 
 #include "spi.h"
-#include "pff.h"
+#include "ff.h"
 #include "diskio.h"
 #include "serial.h"
 #include "comms.h"
@@ -43,6 +43,9 @@ static volatile uint32_t g_total_timer_count;   // number of (AVR) cycles that t
 static volatile uint8_t g_tap_file_complete;    // flag to indicate that all bytes have been read from the TAP
 static volatile uint32_t g_tap_file_pos;        // current read position in the TAP (bytes)
 static volatile uint32_t g_tap_file_len;        // total length of the TAP  (bytes)
+
+int g_num_files = 0;
+int g_cur_file_index = 0;
 
 
 // timer1 is running at 2MHz or 0.5 uS per tick.
@@ -144,20 +147,20 @@ void print_pos() {
 int play_file(FILINFO* pfile_info)
 {
   FRESULT res;
-  WORD br;
+  UINT br;
   int perc = 0;
   g_tap_file_complete = 0;
   g_tap_file_pos = 0;
   g_tap_file_len = pfile_info->fsize;
 
-  res = pf_open(pfile_info->fname);
+  res = f_open(&g_fil, pfile_info->fname, FA_READ);
   if (res != FR_OK)
   {
     lcd_title_P(S_OPEN_FAILED);
     return 0;
   }
 
-  res = pf_read((void*) g_fat_buffer, FAT_BUF_SIZE, &br);
+  res = f_read(&g_fil, (void*) g_fat_buffer, FAT_BUF_SIZE, &br);
   if (res != FR_OK)
   {
     lcd_title_P(S_READ_FAILED);
@@ -204,7 +207,7 @@ int play_file(FILINFO* pfile_info)
       break;
     }
     
-    pf_read((void*) g_fat_buffer + g_write_index, 128, &br);
+    f_read(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
     g_write_index += 128;
     perc = (g_tap_file_pos * 100) / g_tap_file_len;
     print_pos();
@@ -226,6 +229,7 @@ int play_file(FILINFO* pfile_info)
   }
 
   signal_timer_stop();
+  f_close(&g_fil);
   
   print_pos();
 
@@ -278,9 +282,6 @@ int tapuino_hardwareSetup(void)
   
   signal_timer_setup();
   
-  SPI_Init();
-  SPI_Speed_Slow();
-  
   serial_init();
   lcd_setup();
   lcd_title_P(S_INIT);
@@ -288,14 +289,14 @@ int tapuino_hardwareSetup(void)
   // something (possibly) dodgy in the bootloader causes a fail on cold boot.
   // retrying here seems to fix it (could just be the bootloader on my cheap Chinese clone?)
   for (tmp = 0; tmp < 10; tmp++) {
-    res = pf_mount(&g_fs);
+    res = f_mount(&g_fs, "", 1);
     _delay_ms(200);
     if (res == FR_OK) break;
   }
   
   if (res == FR_OK) {
     SPI_Speed_Fast();
-    res = pf_opendir(&g_dir, DEFAULT_DIR);
+    res = f_opendir(&g_dir, DEFAULT_DIR);
   } else {
     lcd_title_P(S_INIT_FAILED);
   }
@@ -303,23 +304,17 @@ int tapuino_hardwareSetup(void)
   return(res == FR_OK);
 }
 
-int num_files = 0;
-int cur_file_index = 0;
-
 
 void handle_play_mode(FILINFO* pfile_info) {
   lcd_title_P(S_SELECT_FILE);
-  if (!get_file_at_index(pfile_info, cur_file_index)) {
+  if (!get_file_at_index(pfile_info, g_cur_file_index)) {
     // shouldn't happen...
     lcd_title_P(S_NO_FILES_FOUND);
     return;
   }
 
-  lcd_status(pfile_info->fname);
-  if (pfile_info->fattrib & AM_DIR) {
-    lcd_show_dir();
-  }
-        
+  display_filename(pfile_info);
+  
   while(1)
   {
     switch(g_cur_command)
@@ -328,18 +323,20 @@ void handle_play_mode(FILINFO* pfile_info) {
       {
         if (pfile_info->fattrib & AM_DIR) {
           if (change_dir(pfile_info->fname) == FR_OK) {
-            num_files = get_num_files(pfile_info);
-            cur_file_index = 0;
-            get_file_at_index(pfile_info, cur_file_index);
-            lcd_status(pfile_info->fname);
-            lcd_show_dir();
+            g_num_files = get_num_files(pfile_info);
+            g_cur_file_index = 0;
+            get_file_at_index(pfile_info, g_cur_file_index);
+            display_filename(pfile_info);
           } else {
             lcd_status_P(S_DIRECTORY_ERROR);
           }
         } else {
+          display_filename(pfile_info);
           play_file(pfile_info);
           lcd_title_P(S_SELECT_FILE);
-          lcd_status(pfile_info->fname);
+          // buffer is used so get the file again
+          get_file_at_index(pfile_info, g_cur_file_index);
+          display_filename(pfile_info);
         }
         g_cur_command = COMMAND_IDLE;
         break;
@@ -348,11 +345,10 @@ void handle_play_mode(FILINFO* pfile_info) {
       {
         if (g_fs.cdir != 0) {
           if (change_dir("..") == FR_OK) {
-            num_files = get_num_files(pfile_info);
-            cur_file_index = 0;
-            get_file_at_index(pfile_info, cur_file_index);
-            lcd_status(pfile_info->fname);
-            lcd_show_dir();
+            g_num_files = get_num_files(pfile_info);
+            g_cur_file_index = 0;
+            get_file_at_index(pfile_info, g_cur_file_index);
+            display_filename(pfile_info);
           } else {
             lcd_status_P(S_DIRECTORY_ERROR);
           }        
@@ -362,27 +358,21 @@ void handle_play_mode(FILINFO* pfile_info) {
       }
       case COMMAND_NEXT:
       {
-        if (++cur_file_index >= num_files) {
-          cur_file_index = 0;
+        if (++g_cur_file_index >= g_num_files) {
+          g_cur_file_index = 0;
         }
-        get_file_at_index(pfile_info, cur_file_index);
-        lcd_status(pfile_info->fname);
-        if (pfile_info->fattrib & AM_DIR) {
-          lcd_show_dir();
-        }
+        get_file_at_index(pfile_info, g_cur_file_index);
+        display_filename(pfile_info);
         g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_PREVIOUS:
       {
-        if (--cur_file_index < 0) {
-          cur_file_index = num_files - 1;
+        if (--g_cur_file_index < 0) {
+          g_cur_file_index = g_num_files - 1;
         }
-        get_file_at_index(pfile_info, cur_file_index);
-        lcd_status(pfile_info->fname);
-        if (pfile_info->fattrib & AM_DIR) {
-          lcd_show_dir();
-        }
+        get_file_at_index(pfile_info, g_cur_file_index);
+        display_filename(pfile_info);
         g_cur_command = COMMAND_IDLE;
         break;
       }
@@ -390,19 +380,22 @@ void handle_play_mode(FILINFO* pfile_info) {
         input_callback();
       break;
     }
+    filename_ticker();
   }
 }
 
 void tapuino_run()
 {
   FILINFO file_info;
+  file_info.lfname = (TCHAR*)g_fat_buffer;
+  file_info.lfsize = sizeof(g_fat_buffer);
 
   if (!tapuino_hardwareSetup()) {
     lcd_title_P(S_INIT_FAILED);
     return;
   }
   
-  if ((num_files = get_num_files(&file_info)) == 0) {
+  if ((g_num_files = get_num_files(&file_info)) == 0) {
     lcd_title_P(S_NO_FILES_FOUND);
     return;
   }
