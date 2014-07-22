@@ -5,6 +5,7 @@
 #define LCD_I2C_ADDR        0x27
 #define LCD_NUM_LINES       2
 #define MAX_LCD_LINE_LEN    16
+#define TICKER_HOLD         5
 
 // don't mess with this!
 #define FAT_BUF_SIZE        256

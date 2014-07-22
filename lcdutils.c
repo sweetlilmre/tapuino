@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include "ff.h"
 #include "config.h"
 #include "lcd.h"
 #include "lcdutils.h"
@@ -11,6 +12,11 @@
 #define DIRECTORY_INDICATOR 0b01111110
 
 char g_char_buffer[MAX_LCD_LINE_LEN + 1] = {0};
+uint8_t g_ticker_enabled  = 0;
+uint8_t g_ticker_index = 0;
+uint8_t g_ticker_hold = TICKER_HOLD;
+uint8_t g_ticker_end_hold = TICKER_HOLD;
+FILINFO* g_ticker_file_info = NULL;
 
 uint8_t backslashChar[8] = {
     0b00000,
@@ -23,6 +29,53 @@ uint8_t backslashChar[8] = {
     0b00000
 };
 
+void filename_ticker() {
+  static uint32_t wait_for = 0;
+  char* ticker_string;
+
+  if (g_ticker_enabled) {
+    if (wait_for++ < (SPINNER_RATE*2)) {
+      return;
+    }
+    wait_for = 0;
+
+    if (g_ticker_hold) {
+      g_ticker_hold--;
+      return;
+    }
+
+    g_ticker_index++;
+    ticker_string = g_ticker_file_info->lfname[0] ? g_ticker_file_info->lfname : g_ticker_file_info->fname;
+    if ((strlen(ticker_string) - g_ticker_index) < (MAX_LCD_LINE_LEN - 1)) {
+      if (g_ticker_end_hold) {
+        g_ticker_index--;
+        g_ticker_end_hold--;
+        return;
+      }
+
+      g_ticker_index = 0;
+      g_ticker_hold = g_ticker_end_hold = TICKER_HOLD;
+    }
+    lcd_status(&ticker_string[g_ticker_index]);
+    if (g_ticker_file_info->fattrib & AM_DIR) {
+      lcd_show_dir();
+    }  
+  }
+}
+
+void display_filename(FILINFO* pfile_info) {
+  char* ticker_string;
+  
+  g_ticker_file_info = pfile_info;
+  ticker_string = g_ticker_file_info->lfname[0] ? g_ticker_file_info->lfname : g_ticker_file_info->fname;
+  lcd_status(ticker_string);
+  if (g_ticker_file_info->fattrib & AM_DIR) {
+    lcd_show_dir();
+  }  
+  g_ticker_index = 0;
+  g_ticker_hold = TICKER_HOLD;
+  g_ticker_enabled = strlen(ticker_string) > (MAX_LCD_LINE_LEN - 1);
+}
 
 inline void lcd_spinner(int32_t wait, int perc) {
   static uint8_t indicators[] = {'|', '/', '-', 1};
