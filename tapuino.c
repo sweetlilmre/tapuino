@@ -283,7 +283,9 @@ int tapuino_hardwareSetup(void)
   signal_timer_setup();
   
   serial_init();
+  serial_println_P(S_STARTINGINIT);
   lcd_setup();
+  serial_println_P(S_INITI2COK);
   lcd_title_P(S_INIT);
   
   // something (possibly) dodgy in the bootloader causes a fail on cold boot.

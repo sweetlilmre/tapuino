@@ -1,6 +1,9 @@
 #include <avr/pgmspace.h>
 #include "memstrings.h"
 
+
+prog_char S_STARTINGINIT[] PROGMEM = "Starting init sequence";
+prog_char S_INITI2COK[] PROGMEM = "I2C init OK";
 prog_char S_INIT[] PROGMEM = "Init...";
 prog_char S_INIT_FAILED[] PROGMEM = "Init failed!";
 prog_char S_INIT_OK[] PROGMEM = "Init OK.";

@@ -3,6 +3,8 @@
 
 #include <avr/pgmspace.h>
 
+extern prog_char S_STARTINGINIT[];
+extern prog_char S_INITI2COK[];
 extern prog_char S_INIT[];
 extern prog_char S_INIT_FAILED[];
 extern prog_char S_INIT_OK[];
