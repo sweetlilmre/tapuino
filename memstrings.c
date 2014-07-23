@@ -2,6 +2,18 @@
 #include "memstrings.h"
 
 
+prog_char S_D0[] PROGMEM = "D0";
+prog_char S_D1[] PROGMEM = "D1";
+prog_char S_D2[] PROGMEM = "D2";
+prog_char S_D3[] PROGMEM = "D3";
+prog_char S_D4[] PROGMEM = "D4";
+prog_char S_D5[] PROGMEM = "D5";
+prog_char S_D6[] PROGMEM = "D6";
+prog_char S_D7[] PROGMEM = "D7";
+prog_char S_D8[] PROGMEM = "D8";
+prog_char S_D9[] PROGMEM = "D9";
+
+
 prog_char S_STARTINGINIT[] PROGMEM = "Starting init sequence";
 prog_char S_INITI2COK[] PROGMEM = "I2C init OK";
 prog_char S_INIT[] PROGMEM = "Init...";

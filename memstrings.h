@@ -3,6 +3,18 @@
 
 #include <avr/pgmspace.h>
 
+extern prog_char S_D0[];
+extern prog_char S_D1[];
+extern prog_char S_D2[];
+extern prog_char S_D3[];
+extern prog_char S_D4[];
+extern prog_char S_D5[];
+extern prog_char S_D6[];
+extern prog_char S_D7[];
+extern prog_char S_D8[];
+extern prog_char S_D9[];
+
+
 extern prog_char S_STARTINGINIT[];
 extern prog_char S_INITI2COK[];
 extern prog_char S_INIT[];
