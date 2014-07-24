@@ -11,8 +11,6 @@
 
 #include "i2cmaster.h"
 #include "LCD.h"
-#include "memstrings.h"
-#include "serial.h"
 
 // When the display powers up, it is configured as follows:
 //
@@ -65,10 +63,8 @@ void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize) {
   _cols = cols;
   _rows = lines;
   _backlightval = LCD_NOBACKLIGHT;
-  serial_println_P(S_D0);
   i2c_init();
   _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
-  serial_println_P(S_D1);
   
 
 	if (lines > 1) {
@@ -89,7 +85,6 @@ void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize) {
 	// Now we pull both RS and R/W low to begin commands
 	expanderWrite(_backlightval);	// reset expanderand turn backlight off (Bit 8 =1)
 	_delay_ms(1000);
-  serial_println_P(S_D2);
 
   	//put the LCD into 4 bit mode
 	// this is according to the hitachi HD44780 datasheet
@@ -110,30 +105,24 @@ void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize) {
    // finally, set to 4-bit interface
    write4bits(0x02 << 4); 
 
-  serial_println_P(S_D3);
 
 	// set # lines, font size, etc.
 	command(LCD_FUNCTIONSET | _displayfunction);  
-  serial_println_P(S_D4);
 	
 	// turn the display on with no cursor or blinking default
 	_displaycontrol = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF;
 	lcd_display();
-  serial_println_P(S_D5);
 
 	// clear it off
 	lcd_clear();
-  serial_println_P(S_D6);
 
 	// Initialize to default text direction (for roman languages)
 	_displaymode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT;
 	
 	// set the entry mode
 	command(LCD_ENTRYMODESET | _displaymode);
-  serial_println_P(S_D7);
 
 	lcd_home();
-  serial_println_P(S_D8);
 
 }
 
