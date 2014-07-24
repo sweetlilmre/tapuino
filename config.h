@@ -32,6 +32,7 @@
 
 #define TAPE_WRITE_PORT     PORTD
 #define TAPE_WRITE_DDR      DDRD
+#define TAPE_WRITE_PINS     PIND
 #define TAPE_WRITE_PIN      2
 
 #define MOTOR_PORT          PORTD

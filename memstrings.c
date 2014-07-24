@@ -5,6 +5,7 @@
 prog_char S_DEFAULT_DIR[] PROGMEM =  "/";
 prog_char S_DEFAULT_RECORD_DIR[] PROGMEM =  "/recorded";
 prog_char S_MKDIR_FAILED[] PROGMEM = "MKDIR failed!";
+prog_char S_NAME_PATTERN[] PROGMEM = "rec-%.4d.tap";
 
 prog_char S_STARTINGINIT[] PROGMEM = "Starting init sequence";
 prog_char S_INITI2COK[] PROGMEM = "I2C init OK";

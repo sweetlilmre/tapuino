@@ -3,6 +3,7 @@
 #include <avr/interrupt.h>
 #include <inttypes.h>
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "integer.h"
@@ -43,45 +44,66 @@ static volatile uint32_t g_total_timer_count;   // number of (AVR) cycles that t
 static volatile uint8_t g_tap_file_complete;    // flag to indicate that all bytes have been read from the TAP
 static volatile uint32_t g_tap_file_pos;        // current read position in the TAP (bytes)
 static volatile uint32_t g_tap_file_len;        // total length of the TAP  (bytes)
+static uint32_t g_pulse_length = 0;             // length of pulse in uS
+static uint32_t g_pulse_length_save;            
+static uint8_t g_recording = 0;                 // recording flag for the ISR
+
 
 int g_num_files = 0;
 int g_cur_file_index = 0;
 
+static inline void tap_write_routine() {
+  static uint8_t last_signal = 0;
+  uint8_t signal = TAPE_WRITE_PINS & _BV(TAPE_WRITE_PIN);
+  uint32_t tap_data;
 
-// timer1 is running at 2MHz or 0.5 uS per tick.
-// signal values are measured in uS, so OCR1A is set to the value from the TAP file (converted into uS) for each signal half
-// i.e. TAP value converted to uS * 2 == full signal length
-ISR(TIMER1_COMPA_vect) {
-  static unsigned long pulse_length = 0;
-  static unsigned long pulse_length_save;
-  unsigned long tap_data;
-  
-  // keep track of the number of cycles in case we get to a MOTOR stop situation before the TAP has completed
-  g_total_timer_count += OCR1A;
-  
-  // don't process if the MOTOR is off!
-  if (MOTOR_IS_OFF()) {
-    return;
+  if (signal != last_signal) {
+    last_signal = signal;
+    if (signal != 0) {
+      if(g_signal_2nd_half) {
+        tap_data = g_total_timer_count / CYCLE_MULT_8;
+        
+        if (tap_data == 0) {
+          tap_data++;
+        }
+        if (tap_data < 256) {
+          g_fat_buffer[g_read_index++] = (uint8_t) tap_data;
+        } else {
+          g_fat_buffer[g_read_index++] = 0;
+          g_fat_buffer[g_read_index++] = (uint8_t) (g_total_timer_count & 0xff);
+          g_fat_buffer[g_read_index++] = (uint8_t) ((g_total_timer_count & 0xff00) >> 8);
+          g_fat_buffer[g_read_index++] = (uint8_t) ((g_total_timer_count & 0xff0000) >> 16);
+        }
+      } else {
+        g_signal_2nd_half = 0;
+        g_total_timer_count = 0;
+        OCR1A = 0x8;
+      }
+    }
   }
+}
+
+static inline void tap_read_routine() {
+  uint32_t tap_data;
   
   if (g_signal_2nd_half) {                // 2nd half of the signal
-    if (pulse_length > 0xFFFF) {          // check to see if its bigger than 16 bits
-      pulse_length -= 0xFFFF;
+    if (g_pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
+      g_pulse_length -= 0xFFFF;
       OCR1A = 0xFFFF;
     } else {
-      OCR1A = (unsigned short) pulse_length;
-      pulse_length = 0;                   // clear this, for 1st half check so that the next data is loaded
+      OCR1A = (unsigned short) g_pulse_length;
+      g_pulse_length = 0;                 // clear this, for 1st half check so that the next data is loaded
       g_signal_2nd_half = 0;              // next time round switch to 1st half
     }
     TAPE_READ_HIGH();                     // set the signal high
   } else {                                // 1st half of the signal
-    if (pulse_length) {                   // do we have any pulse left?
-      if (pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
-        pulse_length -= 0xFFFF;
+    if (g_pulse_length) {                 // do we have any pulse left?
+      if (g_pulse_length > 0xFFFF) {      // check to see if its bigger than 16 bits
+        g_pulse_length -= 0xFFFF;
         OCR1A = 0xFFFF;
       } else {
-        OCR1A = (unsigned short) pulse_length;
-        pulse_length = pulse_length_save; // restore pulse length for the 2nd half of the signal
+        OCR1A = (unsigned short) g_pulse_length;
+        g_pulse_length = g_pulse_length_save; // restore pulse length for the 2nd half of the signal
         g_signal_2nd_half = 1;            // next time round switch to 2nd half
       }
     } else {
@@ -93,25 +115,44 @@ ISR(TIMER1_COMPA_vect) {
       tap_data = (unsigned long) g_fat_buffer[g_read_index++];
       g_tap_file_pos++;
       if (tap_data == 0) {
-        pulse_length =  (unsigned long) g_fat_buffer[g_read_index++];
-        pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
-        pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
-        pulse_length *= CYCLE_MULT_RAW;
+        g_pulse_length =  (unsigned long) g_fat_buffer[g_read_index++];
+        g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
+        g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
+        g_pulse_length *= CYCLE_MULT_RAW;
         g_tap_file_pos += 3;
       } else {
-        pulse_length = tap_data * CYCLE_MULT_8;
+        g_pulse_length = tap_data * CYCLE_MULT_8;
       }
-      pulse_length_save = pulse_length;   // save this for the 2nd half of the wave
-      if (pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
-        pulse_length -= 0xFFFF;
+      g_pulse_length_save = g_pulse_length;   // save this for the 2nd half of the wave
+      if (g_pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
+        g_pulse_length -= 0xFFFF;
         OCR1A = 0xFFFF;
       } else {
-        OCR1A = (unsigned short) pulse_length;
-        pulse_length = pulse_length_save; // restore pulse length for the 2nd half of the signal
+        OCR1A = (unsigned short) g_pulse_length;
+        g_pulse_length = g_pulse_length_save; // restore pulse length for the 2nd half of the signal
         g_signal_2nd_half = 1;            // next time round switch to 2nd half
       }
       TAPE_READ_LOW();
     }
+  }
+}
+
+// timer1 is running at 2MHz or 0.5 uS per tick.
+// signal values are measured in uS, so OCR1A is set to the value from the TAP file (converted into uS) for each signal half
+// i.e. TAP value converted to uS * 2 == full signal length
+ISR(TIMER1_COMPA_vect) {
+  // keep track of the number of cycles in case we get to a MOTOR stop situation before the TAP has completed
+  g_total_timer_count += OCR1A;
+  
+  // don't process if the MOTOR is off!
+  if (MOTOR_IS_OFF()) {
+    return;
+  }
+  
+  if (g_recording) {
+    tap_write_routine();
+  } else {
+    tap_read_routine();
   }
 }
 
@@ -144,6 +185,15 @@ void print_pos() {
   serial_println(g_char_buffer);
 }
 
+
+void busy_spinner() {
+  int i;
+  for (i = 0; i < 100; i++) {
+    lcd_spinner(0, 100);
+    _delay_ms(20);
+  }
+}
+
 int play_file(FILINFO* pfile_info)
 {
   FRESULT res;
@@ -154,21 +204,18 @@ int play_file(FILINFO* pfile_info)
   g_tap_file_len = pfile_info->fsize;
 
   res = f_open(&g_fil, pfile_info->fname, FA_READ);
-  if (res != FR_OK)
-  {
+  if (res != FR_OK) {
     lcd_title_P(S_OPEN_FAILED);
     return 0;
   }
 
   res = f_read(&g_fil, (void*) g_fat_buffer, FAT_BUF_SIZE, &br);
-  if (res != FR_OK)
-  {
+  if (res != FR_OK) {
     lcd_title_P(S_READ_FAILED);
     return 0;
   }
 
-  if (strncmp_P((const char*) g_fat_buffer, S_TAP_MAGIC_C64, 12) != 0)
-  {
+  if (strncmp_P((const char*) g_fat_buffer, S_TAP_MAGIC_C64, 12) != 0) {
     lcd_title_P(S_INVALID_TAP);
     return 0;
   }
@@ -243,26 +290,16 @@ int play_file(FILINFO* pfile_info)
   }
 
   // end of load UI indicator
-  for (br = 0; br < 100; br++) {
-    lcd_spinner(0, 100);
-    _delay_ms(20);
-  }
+  busy_spinner();
 
   return 1;
 }
 
-void busy_spinner() {
-  int i;
-  for (i = 0; i < 100; i++) {
-    lcd_spinner(0, 100);
-    _delay_ms(20);
-  }
-}
 
 void record_file() {
   FRESULT res;
   UINT br;
-  int perc = 0;
+  int tmp = 0;
   g_tap_file_complete = 0;
   g_tap_file_pos = 0;
   g_tap_file_len = 0;
@@ -288,54 +325,37 @@ void record_file() {
     f_close(&g_fil);
     br++;
   }
-  busy_spinner();
-  return;
-  
-  /*
-  res = f_open(&g_fil, pfile_info->fname, FA_READ);
-  if (res != FR_OK)
-  {
-    lcd_title_P(S_OPEN_FAILED);
-    return 0;
-  }
-
-  res = f_read(&g_fil, (void*) g_fat_buffer, FAT_BUF_SIZE, &br);
-  if (res != FR_OK)
-  {
-    lcd_title_P(S_READ_FAILED);
-    return 0;
-  }
-
-  if (strncmp_P((const char*) g_fat_buffer, S_TAP_MAGIC_C64, 12) != 0)
-  {
-    lcd_title_P(S_INVALID_TAP);
-    return 0;
+  res = f_open(&g_fil, g_char_buffer, FA_CREATE_NEW);
+  if (res != FR_OK) {
+    lcd_status_P(S_OPEN_FAILED);
+    busy_spinner();
+    return;
   }
   
+  // write header
+  memset (g_fat_buffer, 0, sizeof(g_fat_buffer));
+  strcpy_P((char*)g_fat_buffer, S_TAP_MAGIC_C64);
+  tmp = strlen((char*)g_fat_buffer);
+  g_fat_buffer[tmp] = 0x01;
+
   g_write_index = 0;
   g_read_index = 20; // Skip header
   g_tap_file_pos = 20;
   g_signal_2nd_half = 0;
-
+  
   lcd_title_P(S_LOADING);
-
-  TAPE_READ_LOW();
   SENSE_ON();
   // Start send-ISR
   signal_timer_start();
 
-  while (br > 0) {
-    // Wait until ISR is in the new half of the buffer
+  while (!MOTOR_IS_OFF()) {
     while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
       // process input for abort
       input_callback();
       // feedback to the user
-      lcd_spinner(SPINNER_RATE, perc);
+      lcd_spinner(SPINNER_RATE, 0);
       
-      // if the C64 stopped the motor for longer than the longest possible signal time
-      // then we need to get out of here. This happens in Rambo First Blood Part II.
-      // The loader seems to stop the tape before the tap file is complete.
-      if ((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_cur_command == COMMAND_ABORT)) {
+      if (MOTOR_IS_OFF() || (g_cur_command == COMMAND_ABORT)) {
         g_tap_file_complete = 1;
         break;
       }
@@ -346,44 +366,26 @@ void record_file() {
       break;
     }
     
-    f_read(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
+    f_write(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
     g_write_index += 128;
-    perc = (g_tap_file_pos * 100) / g_tap_file_len;
-    print_pos();
     input_callback();
   }
-
-  // wait for the remaining buffer to be read.
-  while (!g_tap_file_complete) {
-    // process input for abort
-    input_callback();
-    // feedback to the user
-    lcd_spinner(SPINNER_RATE, perc);
-    // we need to do the same trick as above, BC's Quest for Tires stops the motor right near the
-    // end of the tape, then restarts for the last bit of data, so we can't rely on the motor signal
-    // a better approach might be to see if we have read all the data and then break. //
-    if ((g_cur_command == COMMAND_ABORT) || (g_total_timer_count > MAX_SIGNAL_CYCLES)) {
-      break;
-    }
+  
+  if (g_write_index != g_read_index) {
+    f_write(&g_fil, (void*) g_fat_buffer + g_write_index, g_read_index & 0x80, &br);
   }
 
   signal_timer_stop();
   f_close(&g_fil);
   
-  print_pos();
-
-  TAPE_READ_LOW();
-  SENSE_OFF();
-
   if (g_cur_command == COMMAND_ABORT) {
     lcd_title_P(S_LOADING_ABORTED);
   } else {
     lcd_title_P(S_LOADING_COMPLETE);
   }
-*/
+
   // end of load UI indicator
   busy_spinner();
-
 }
 
 void handle_play_mode(FILINFO* pfile_info) {
@@ -626,7 +628,8 @@ int tapuino_hardware_setup(void)
   
   if (res == FR_OK) {
     SPI_Speed_Fast();
-    res = f_opendir(&g_dir, DEFAULT_DIR);
+    strcpy_P(g_char_buffer, S_DEFAULT_DIR);
+    res = f_opendir(&g_dir, g_char_buffer);
   } else {
     lcd_title_P(S_INIT_FAILED);
   }
