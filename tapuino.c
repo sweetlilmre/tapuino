@@ -251,7 +251,326 @@ int play_file(FILINFO* pfile_info)
   return 1;
 }
 
-int tapuino_hardwareSetup(void)
+void busy_spinner() {
+  int i;
+  for (i = 0; i < 100; i++) {
+    lcd_spinner(0, 100);
+    _delay_ms(20);
+  }
+}
+
+void record_file() {
+  FRESULT res;
+  UINT br;
+  int perc = 0;
+  g_tap_file_complete = 0;
+  g_tap_file_pos = 0;
+  g_tap_file_len = 0;
+
+  strcpy_P(g_char_buffer, S_DEFAULT_RECORD_DIR);
+  res = f_opendir(&g_dir, g_char_buffer);
+  if (res != FR_OK) {
+    res = f_mkdir(g_char_buffer);
+    if (res != FR_OK || f_opendir(&g_dir, g_char_buffer) != FR_OK) {
+      lcd_status_P(S_MKDIR_FAILED);
+      busy_spinner();
+      return;
+    }
+  }
+  
+  br = 0;
+  while (1) {
+    sprintf_P(g_char_buffer, S_NAME_PATTERN, br);
+    res = f_open(&g_fil, g_char_buffer, FA_READ);
+    if (res != FR_OK) {
+      break;
+    }
+    f_close(&g_fil);
+    br++;
+  }
+  busy_spinner();
+  return;
+  
+  /*
+  res = f_open(&g_fil, pfile_info->fname, FA_READ);
+  if (res != FR_OK)
+  {
+    lcd_title_P(S_OPEN_FAILED);
+    return 0;
+  }
+
+  res = f_read(&g_fil, (void*) g_fat_buffer, FAT_BUF_SIZE, &br);
+  if (res != FR_OK)
+  {
+    lcd_title_P(S_READ_FAILED);
+    return 0;
+  }
+
+  if (strncmp_P((const char*) g_fat_buffer, S_TAP_MAGIC_C64, 12) != 0)
+  {
+    lcd_title_P(S_INVALID_TAP);
+    return 0;
+  }
+  
+  g_write_index = 0;
+  g_read_index = 20; // Skip header
+  g_tap_file_pos = 20;
+  g_signal_2nd_half = 0;
+
+  lcd_title_P(S_LOADING);
+
+  TAPE_READ_LOW();
+  SENSE_ON();
+  // Start send-ISR
+  signal_timer_start();
+
+  while (br > 0) {
+    // Wait until ISR is in the new half of the buffer
+    while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
+      // process input for abort
+      input_callback();
+      // feedback to the user
+      lcd_spinner(SPINNER_RATE, perc);
+      
+      // if the C64 stopped the motor for longer than the longest possible signal time
+      // then we need to get out of here. This happens in Rambo First Blood Part II.
+      // The loader seems to stop the tape before the tap file is complete.
+      if ((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_cur_command == COMMAND_ABORT)) {
+        g_tap_file_complete = 1;
+        break;
+      }
+    }
+
+    // exit outer while
+    if (g_tap_file_complete) {
+      break;
+    }
+    
+    f_read(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
+    g_write_index += 128;
+    perc = (g_tap_file_pos * 100) / g_tap_file_len;
+    print_pos();
+    input_callback();
+  }
+
+  // wait for the remaining buffer to be read.
+  while (!g_tap_file_complete) {
+    // process input for abort
+    input_callback();
+    // feedback to the user
+    lcd_spinner(SPINNER_RATE, perc);
+    // we need to do the same trick as above, BC's Quest for Tires stops the motor right near the
+    // end of the tape, then restarts for the last bit of data, so we can't rely on the motor signal
+    // a better approach might be to see if we have read all the data and then break. //
+    if ((g_cur_command == COMMAND_ABORT) || (g_total_timer_count > MAX_SIGNAL_CYCLES)) {
+      break;
+    }
+  }
+
+  signal_timer_stop();
+  f_close(&g_fil);
+  
+  print_pos();
+
+  TAPE_READ_LOW();
+  SENSE_OFF();
+
+  if (g_cur_command == COMMAND_ABORT) {
+    lcd_title_P(S_LOADING_ABORTED);
+  } else {
+    lcd_title_P(S_LOADING_COMPLETE);
+  }
+*/
+  // end of load UI indicator
+  busy_spinner();
+
+}
+
+void handle_play_mode(FILINFO* pfile_info) {
+  lcd_title_P(S_SELECT_FILE);
+  if (!get_file_at_index(pfile_info, g_cur_file_index)) {
+    // shouldn't happen...
+    lcd_title_P(S_NO_FILES_FOUND);
+    return;
+  }
+
+  display_filename(pfile_info);
+  
+  while(1)
+  {
+    switch(g_cur_command)
+    {
+      case COMMAND_SELECT:
+      {
+        if (pfile_info->fattrib & AM_DIR) {
+          if (change_dir(pfile_info->fname) == FR_OK) {
+            g_num_files = get_num_files(pfile_info);
+            g_cur_file_index = 0;
+            get_file_at_index(pfile_info, g_cur_file_index);
+            display_filename(pfile_info);
+          } else {
+            lcd_status_P(S_DIRECTORY_ERROR);
+          }
+        } else {
+          display_filename(pfile_info);
+          play_file(pfile_info);
+          lcd_title_P(S_SELECT_FILE);
+          // buffer is used so get the file again
+          get_file_at_index(pfile_info, g_cur_file_index);
+          display_filename(pfile_info);
+        }
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      case COMMAND_ABORT:
+      {
+        if (g_fs.cdir != 0) {
+          if (change_dir("..") == FR_OK) {
+            g_num_files = get_num_files(pfile_info);
+            g_cur_file_index = 0;
+            get_file_at_index(pfile_info, g_cur_file_index);
+            display_filename(pfile_info);
+          } else {
+            lcd_status_P(S_DIRECTORY_ERROR);
+          }        
+        } else {
+          // back to main menu
+          return;
+        }
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      case COMMAND_NEXT:
+      {
+        if (++g_cur_file_index >= g_num_files) {
+          g_cur_file_index = 0;
+        }
+        get_file_at_index(pfile_info, g_cur_file_index);
+        display_filename(pfile_info);
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      case COMMAND_PREVIOUS:
+      {
+        if (--g_cur_file_index < 0) {
+          g_cur_file_index = g_num_files - 1;
+        }
+        get_file_at_index(pfile_info, g_cur_file_index);
+        display_filename(pfile_info);
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      default:
+        input_callback();
+      break;
+    }
+    filename_ticker();
+  }
+}
+
+void handle_mode_record(FILINFO* pfile_info) {
+  lcd_title_P(S_READY_RECORD);
+  lcd_status_P(S_PRESS_START);
+  
+  while(1)
+  {
+    switch(g_cur_command)
+    {
+      case COMMAND_SELECT:
+      {
+        record_file();
+        lcd_title_P(S_READY_RECORD);
+        lcd_status_P(S_PRESS_START);
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      case COMMAND_ABORT:
+      {
+        // back to main menu
+        return;
+      }
+      default:
+        input_callback();
+      break;
+    }
+  }
+}
+
+void handle_mode_options() {
+}
+
+
+#define MODE_FIRST    0
+#define MODE_PLAY     0
+#define MODE_RECORD   1
+#define MODE_OPTIONS  2
+#define MODE_LAST     2
+
+uint8_t handle_select_mode() {
+  uint8_t prev_mode = MODE_LAST;
+  uint8_t cur_mode = MODE_PLAY;
+
+  lcd_title_P(S_SELECT_MODE);
+  
+  while(1)
+  {
+    if (prev_mode != cur_mode) {
+      switch (cur_mode)
+      {
+        case MODE_PLAY:
+          lcd_status_P(S_MODE_PLAY);
+        break;
+        case MODE_RECORD:
+          lcd_status_P(S_MODE_RECORD);
+        break;
+        case MODE_OPTIONS:
+          lcd_status_P(S_MODE_OPTIONS);
+        break;
+      }
+      prev_mode = cur_mode;
+    }
+    
+    switch(g_cur_command)
+    {
+      case COMMAND_SELECT:
+      {
+        g_cur_command = COMMAND_IDLE;
+        return cur_mode;
+      }
+      case COMMAND_ABORT:
+      {
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      case COMMAND_NEXT:
+      {
+        if (cur_mode == MODE_LAST) {
+          cur_mode = MODE_FIRST;
+        } else {
+          cur_mode++;
+        }
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      case COMMAND_PREVIOUS:
+      {
+        if (cur_mode == MODE_FIRST) {
+          cur_mode = MODE_LAST;
+        } else {
+          cur_mode--;
+        }
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      default:
+        input_callback();
+      break;
+    }
+  }
+}
+
+
+int tapuino_hardware_setup(void)
 {
   FRESULT res;
   uint8_t tmp;
@@ -315,93 +634,13 @@ int tapuino_hardwareSetup(void)
   return(res == FR_OK);
 }
 
-
-void handle_play_mode(FILINFO* pfile_info) {
-  lcd_title_P(S_SELECT_FILE);
-  if (!get_file_at_index(pfile_info, g_cur_file_index)) {
-    // shouldn't happen...
-    lcd_title_P(S_NO_FILES_FOUND);
-    return;
-  }
-
-  display_filename(pfile_info);
-  
-  while(1)
-  {
-    switch(g_cur_command)
-    {
-      case COMMAND_SELECT:
-      {
-        if (pfile_info->fattrib & AM_DIR) {
-          if (change_dir(pfile_info->fname) == FR_OK) {
-            g_num_files = get_num_files(pfile_info);
-            g_cur_file_index = 0;
-            get_file_at_index(pfile_info, g_cur_file_index);
-            display_filename(pfile_info);
-          } else {
-            lcd_status_P(S_DIRECTORY_ERROR);
-          }
-        } else {
-          display_filename(pfile_info);
-          play_file(pfile_info);
-          lcd_title_P(S_SELECT_FILE);
-          // buffer is used so get the file again
-          get_file_at_index(pfile_info, g_cur_file_index);
-          display_filename(pfile_info);
-        }
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      case COMMAND_ABORT:
-      {
-        if (g_fs.cdir != 0) {
-          if (change_dir("..") == FR_OK) {
-            g_num_files = get_num_files(pfile_info);
-            g_cur_file_index = 0;
-            get_file_at_index(pfile_info, g_cur_file_index);
-            display_filename(pfile_info);
-          } else {
-            lcd_status_P(S_DIRECTORY_ERROR);
-          }        
-        }
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      case COMMAND_NEXT:
-      {
-        if (++g_cur_file_index >= g_num_files) {
-          g_cur_file_index = 0;
-        }
-        get_file_at_index(pfile_info, g_cur_file_index);
-        display_filename(pfile_info);
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      case COMMAND_PREVIOUS:
-      {
-        if (--g_cur_file_index < 0) {
-          g_cur_file_index = g_num_files - 1;
-        }
-        get_file_at_index(pfile_info, g_cur_file_index);
-        display_filename(pfile_info);
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      default:
-        input_callback();
-      break;
-    }
-    filename_ticker();
-  }
-}
-
 void tapuino_run()
 {
   FILINFO file_info;
   file_info.lfname = (TCHAR*)g_fat_buffer;
   file_info.lfsize = sizeof(g_fat_buffer);
 
-  if (!tapuino_hardwareSetup()) {
+  if (!tapuino_hardware_setup()) {
     lcd_title_P(S_INIT_FAILED);
     return;
   }
@@ -410,6 +649,17 @@ void tapuino_run()
     lcd_title_P(S_NO_FILES_FOUND);
     return;
   }
-  
-  handle_play_mode(&file_info);
+  while (1) {
+    switch (handle_select_mode()) {
+      case MODE_PLAY:
+        handle_play_mode(&file_info);
+      break;
+      case MODE_RECORD:
+        handle_mode_record(&file_info);
+      break;
+      case MODE_OPTIONS:
+        handle_mode_options();
+      break;
+    }
+  }
 }

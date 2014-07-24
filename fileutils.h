@@ -1,8 +1,6 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
-#define DEFAULT_DIR "/"
-
 extern FATFS g_fs;
 extern DIR g_dir;
 extern FIL g_fil;

@@ -2,17 +2,9 @@
 #include "memstrings.h"
 
 
-prog_char S_D0[] PROGMEM = "D0";
-prog_char S_D1[] PROGMEM = "D1";
-prog_char S_D2[] PROGMEM = "D2";
-prog_char S_D3[] PROGMEM = "D3";
-prog_char S_D4[] PROGMEM = "D4";
-prog_char S_D5[] PROGMEM = "D5";
-prog_char S_D6[] PROGMEM = "D6";
-prog_char S_D7[] PROGMEM = "D7";
-prog_char S_D8[] PROGMEM = "D8";
-prog_char S_D9[] PROGMEM = "D9";
-
+prog_char S_DEFAULT_DIR[] PROGMEM =  "/";
+prog_char S_DEFAULT_RECORD_DIR[] PROGMEM =  "/recorded";
+prog_char S_MKDIR_FAILED[] PROGMEM = "MKDIR failed!";
 
 prog_char S_STARTINGINIT[] PROGMEM = "Starting init sequence";
 prog_char S_INITI2COK[] PROGMEM = "I2C init OK";
@@ -21,6 +13,12 @@ prog_char S_INIT_FAILED[] PROGMEM = "Init failed!";
 prog_char S_INIT_OK[] PROGMEM = "Init OK.";
 prog_char S_NO_FILES_FOUND[] PROGMEM = "No files found!";
 prog_char S_SELECT_FILE[] PROGMEM = "Select file:";
+prog_char S_SELECT_MODE[] PROGMEM = "Select mode:";
+prog_char S_MODE_PLAY[] PROGMEM = "Play TAP";
+prog_char S_MODE_RECORD[] PROGMEM = "Record TAP";
+prog_char S_READY_RECORD[] PROGMEM = "Ready to Record";
+prog_char S_PRESS_START[] PROGMEM = "Press START";
+prog_char S_MODE_OPTIONS[] PROGMEM = "Options";
 prog_char S_READ_FAILED[] PROGMEM = "Read failed";
 prog_char S_OPEN_FAILED[] PROGMEM = "Open failed";
 prog_char S_INVALID_TAP[] PROGMEM = "Invalid TAP!";
