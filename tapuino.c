@@ -256,18 +256,27 @@ int tapuino_hardwareSetup(void)
   FRESULT res;
   uint8_t tmp;
   
+  // enable TWI pullups
+  TWI_PORT |= _BV(TWI_PIN_SDA);
+  TWI_PORT |= _BV(TWI_PIN_SCL);
+    
+  // sense is output to C64
   SENSE_DDR |= _BV(SENSE_PIN);
   SENSE_OFF();
   
+  // read is output to C64
   TAPE_READ_DDR |= _BV(TAPE_READ_PIN);
   TAPE_READ_HIGH();
   
-  TAPE_WRITE_DDR |= _BV(TAPE_WRITE_PIN);
-  TAPE_WRITE_PORT &= ~_BV(TAPE_WRITE_PIN);
+  // write is input from C64, activate pullups
+  TAPE_WRITE_DDR &= ~_BV(TAPE_WRITE_PIN);
+  TAPE_WRITE_PORT |= _BV(TAPE_WRITE_PIN);
   
+  // motor is input from C64, activate pullups
   MOTOR_DDR &= ~_BV(MOTOR_PIN);
   MOTOR_PORT |= _BV(MOTOR_PIN);
   
+  // keys are all inputs, activate pullups
   KEYS_READ_DDR &= ~_BV(KEY_SELECT_PIN);
   KEYS_READ_PORT |= _BV(KEY_SELECT_PIN);
 

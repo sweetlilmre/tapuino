@@ -10,6 +10,10 @@
 // don't mess with this!
 #define FAT_BUF_SIZE        256
 
+// TWI for pullups
+#define TWI_PORT            PORTC
+#define TWI_PIN_SDA         4
+#define TWI_PIN_SCL         5
 
 // port definitions, change for different wiring
 #define SENSE_PORT          PORTD
