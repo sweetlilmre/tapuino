@@ -30,10 +30,10 @@
 #define TAPE_READ_HIGH()    TAPE_READ_PORT |=  _BV(TAPE_READ_PIN)
 #define TAPE_READ_TOGGLE()  TAPE_READ_PINS |=  _BV(TAPE_READ_PIN)
 
-#define TAPE_WRITE_PORT     PORTD
-#define TAPE_WRITE_DDR      DDRD
-#define TAPE_WRITE_PINS     PIND
-#define TAPE_WRITE_PIN      2
+#define TAPE_WRITE_PORT     PORTB
+#define TAPE_WRITE_DDR      DDRB
+#define TAPE_WRITE_PINS     PINB
+#define TAPE_WRITE_PIN      0
 
 #define MOTOR_PORT          PORTD
 #define MOTOR_DDR           DDRD

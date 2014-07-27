@@ -353,14 +353,16 @@ void record_file() {
   }
   
   // write header
-  memset (g_fat_buffer, 0, sizeof(g_fat_buffer));
-  strcpy_P((char*)g_fat_buffer, S_TAP_MAGIC_C64);
-  tmp = strlen((char*)g_fat_buffer);
-  g_fat_buffer[tmp] = 0x01;
+  memset (g_fat_buffer, 0, sizeof(g_fat_buffer));   // clear it all out
+  strcpy_P((char*)g_fat_buffer, S_TAP_MAGIC_C64);   // copy the magic to the buffer
+  tmp = strlen((char*)g_fat_buffer);                // get to the end of the magic
+  g_fat_buffer[tmp] = 0x01;                         // set TAP format to 1
+  f_write(&g_fil, (void*)g_fat_buffer, 20, &br);    // write out the header with zero length field
+  memset (g_fat_buffer, 0, sizeof(g_fat_buffer));   // clear it all out again for the read / write operation
 
   g_write_index = 0;
-  g_read_index = 20; // Skip header
-  g_tap_file_pos = 20;
+  g_read_index = 0;
+  g_tap_file_pos = 0; // already written 20 bytes of header
   g_signal_2nd_half = 0;
   // set flag to indicate the start of recording
   // let the recording routine know that this the first measurement is about to start
