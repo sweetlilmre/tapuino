@@ -41,15 +41,15 @@
 
 static volatile uint8_t g_read_index;           // read index in the 256 byte buffer
 static volatile uint8_t g_write_index;          // write index in the 256 byte buffer
-static volatile uint8_t g_signal_2nd_half;      // flag to indicate that the 2nd half of the signal should be output
+static volatile uint8_t g_signal_2nd_half;      // dual use flag: flag to indicate that the 2nd half of the signal should be output, or that recording has started
 static volatile uint32_t g_total_timer_count;   // number of (AVR) cycles that the timer has been running for
 static volatile uint8_t g_tap_file_complete;    // flag to indicate that all bytes have been read from the TAP
 static volatile uint32_t g_tap_file_pos;        // current read position in the TAP (bytes)
 static volatile uint32_t g_tap_file_len;        // total length of the TAP  (bytes)
 static uint32_t g_pulse_length = 0;             // length of pulse in uS
-static uint32_t g_pulse_length_save;            // dual function: save length for read and first time flag for write
+static uint32_t g_pulse_length_save;            // save length for read
 static volatile uint32_t g_overflow;            // write signal overflow timer detection
-
+static volatile uint32_t g_timer_tick = 0;      // timer tick at 100Hz
 // on rising edge of signal from C64
 ISR(TIMER1_CAPT_vect) {
   uint32_t tap_data;
@@ -70,21 +70,18 @@ ISR(TIMER1_CAPT_vect) {
       g_fat_buffer[g_read_index++] = (uint8_t) tap_data;
       g_tap_file_pos++;
     } else {                                          // long signal
+      tap_data = g_pulse_length / CYCLE_MULT_RAW;     // get the raw divided value (cycles)
       g_fat_buffer[g_read_index++] = 0;
-      g_fat_buffer[g_read_index++] = (uint8_t) (g_pulse_length & 0xff);
-      g_fat_buffer[g_read_index++] = (uint8_t) ((g_pulse_length & 0xff00) >> 8);
-      g_fat_buffer[g_read_index++] = (uint8_t) ((g_pulse_length & 0xff0000) >> 16);
+      g_fat_buffer[g_read_index++] = (uint8_t) (tap_data & 0xff);
+      g_fat_buffer[g_read_index++] = (uint8_t) ((tap_data & 0xff00) >> 8);
+      g_fat_buffer[g_read_index++] = (uint8_t) ((tap_data & 0xff0000) >> 16);
       g_tap_file_pos += 4;
     }
-    g_signal_2nd_half = 0;
-    g_pulse_length_save = 1;
   } else {
-    g_signal_2nd_half = 1;
     // if this is the first time in, zero the count, otherwise the count starts at the high edge of the signal in the code above
-    if (!g_pulse_length_save) {
-      g_overflow = 0;
-      TCNT1 = 0;
-    }
+    g_signal_2nd_half = 1;
+    g_overflow = 0;
+    TCNT1 = 0;
   }
   
 }
@@ -159,16 +156,17 @@ ISR(TIMER1_COMPA_vect) {
 }
 
 ISR(TIMER2_COMPA_vect) {
-	disk_timerproc();	/* Drive timer procedure of low level disk I/O module */
+	disk_timerproc();	// Drive timer procedure for FatFs low level disk I/O module
+  g_timer_tick++;   // system ticker for timing
 }
 
 void disk_timer_setup() {
   TCCR2A = 0;
   TCCR2B = 0;
-  	/* Start 100Hz system timer (TC2.OC) */
-	OCR2A = F_CPU / 1024 / 100 - 1;
-	TCCR2A = _BV(WGM21);
-  TCCR2B |=  (1 << CS22) | (1 << CS21) | (1 << CS20);  //prescaller 1024 
+  	
+	OCR2A = F_CPU / 1024 / 100 - 1; // 100Hz timer
+	TCCR2A = _BV(WGM21);            // CTC Mode
+  TCCR2B |=  (1 << CS22) | (1 << CS21) | (1 << CS20);  //pre-scaler 1024 
 	TIMSK2 |= _BV(OCIE2A);
 }
 
@@ -180,7 +178,7 @@ void signal_timer_start(uint8_t recording) {
 
   if (recording) {
     g_overflow = 0;
-    TCCR1B = _BV(ICNC1) | _BV(ICES1) | _BV(CS11);   // input capture, rising edge, pre-scaler 8 = 2 MHZ
+    TCCR1B = _BV(ICES1) | _BV(CS11);   // input capture, rising edge, pre-scaler 8 = 2 MHZ
     TIMSK1 = _BV(ICIE1) | _BV(TOIE1);               // input capture interrupt, overflow interrupt
   } else {
     g_total_timer_count = 0;
@@ -191,21 +189,9 @@ void signal_timer_start(uint8_t recording) {
 }
 
 void signal_timer_stop() {
-  // TIMSK1 &= ~_BV(OCIE1A);
   // stop all timer1 interrupts
   TIMSK1 = 0;
 }
-
-void print_pos() {
-  serial_print("g_tap_file_pos: ");
-  ultoa(g_tap_file_pos, g_char_buffer, 10);
-  serial_println(g_char_buffer);
-
-  serial_print("g_tap_file_len: ");
-  ultoa(g_tap_file_len, g_char_buffer, 10);
-  serial_println(g_char_buffer);
-}
-
 
 void busy_spinner() {
   int i;
@@ -298,15 +284,13 @@ int play_file(FILINFO* pfile_info)
   signal_timer_stop();
   f_close(&g_fil);
   
-  print_pos();
-
   TAPE_READ_LOW();
   SENSE_OFF();
 
   if (g_cur_command == COMMAND_ABORT) {
-    lcd_title_P(S_LOADING_ABORTED);
+    lcd_title_P(S_OPERATION_ABORTED);
   } else {
-    lcd_title_P(S_LOADING_COMPLETE);
+    lcd_title_P(S_OPERATION_COMPLETE);
   }
 
   // end of load UI indicator
@@ -319,40 +303,48 @@ int play_file(FILINFO* pfile_info)
 void record_file() {
   FRESULT res;
   UINT br;
-  int tmp = 0;
+  uint32_t tmp = 0;
   g_tap_file_complete = 0;
   g_tap_file_pos = 0;
   g_tap_file_len = 0;
 
-  strcpy_P(g_char_buffer, S_DEFAULT_RECORD_DIR);
-  res = f_opendir(&g_dir, g_char_buffer);
-  if (res != FR_OK) {
-    res = f_mkdir(g_char_buffer);
-    if (res != FR_OK || f_opendir(&g_dir, g_char_buffer) != FR_OK) {
+  // attempt to open the recording dir
+  strcpy_P((char*)g_fat_buffer, S_DEFAULT_RECORD_DIR);
+  res = f_opendir(&g_dir, (char*)g_fat_buffer);
+  if (res != FR_OK) { // try to make it if its not there
+    res = f_mkdir((char*)g_fat_buffer);
+    if (res != FR_OK || f_opendir(&g_dir, (char*)g_fat_buffer) != FR_OK) {
       lcd_status_P(S_MKDIR_FAILED);
       busy_spinner();
       return;
     }
   }
+  // change to the recording dir
+  if (f_chdir((char*)g_fat_buffer) != FR_OK) {
+    lcd_status_P(S_CHDIR_FAILED);
+    busy_spinner();
+    return;
+  }
   
+  // find a filename
   br = 0;
   while (1) {
-    sprintf_P(g_char_buffer, S_NAME_PATTERN, br);
-    res = f_open(&g_fil, g_char_buffer, FA_READ);
+    sprintf_P((char*)g_fat_buffer, S_NAME_PATTERN, br);
+    res = f_open(&g_fil, (char*)g_fat_buffer, FA_READ);
     if (res != FR_OK) {
       break;
     }
     f_close(&g_fil);
     br++;
   }
-  res = f_open(&g_fil, g_char_buffer, FA_CREATE_NEW | FA_WRITE);
+  res = f_open(&g_fil, (char*)g_fat_buffer, FA_CREATE_NEW | FA_WRITE);
   if (res != FR_OK) {
     lcd_status_P(S_OPEN_FAILED);
     busy_spinner();
     return;
   }
   
-  // write header
+  // write TAP header
   memset (g_fat_buffer, 0, sizeof(g_fat_buffer));   // clear it all out
   strcpy_P((char*)g_fat_buffer, S_TAP_MAGIC_C64);   // copy the magic to the buffer
   tmp = strlen((char*)g_fat_buffer);                // get to the end of the magic
@@ -362,13 +354,12 @@ void record_file() {
 
   g_write_index = 0;
   g_read_index = 0;
-  g_tap_file_pos = 0; // already written 20 bytes of header
-  g_signal_2nd_half = 0;
+  g_tap_file_pos = 0; // header is already written so don't add it on here
   // set flag to indicate the start of recording
-  // let the recording routine know that this the first measurement is about to start
-  g_pulse_length_save = 0;
+  g_signal_2nd_half = 0;
   
   lcd_title_P(S_RECORDING);
+  lcd_status_P(S_MAX_BLANK_LINE);
   SENSE_ON();
   while (MOTOR_IS_OFF()) {
     input_callback();
@@ -376,19 +367,29 @@ void record_file() {
       break;
     }
     // feedback to the user
-    lcd_spinner(SPINNER_RATE, 0);
+    lcd_spinner(SPINNER_RATE, -1);
   }
 
-  // Start send-ISR
+  // Start recv-ISR
   signal_timer_start(1);
 
-  while (!MOTOR_IS_OFF()) {
+  while (!g_tap_file_complete) {
     while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
+      // nasty bit of code to wait after the motor is shut off to finalise the TAP
+      if (MOTOR_IS_OFF()) {
+        // use the 100Hz timer to wait 5 seconds after the motor has shut off
+        if ((g_timer_tick - tmp) > REC_FINALIZE_TIME) {
+          g_tap_file_complete = 1;
+          break;
+        }
+      } else { // reset here while the motor is on so that we have the most current count
+        tmp = g_timer_tick;
+      }
       // process input for abort
       input_callback();
       // feedback to the user
-      lcd_spinner(SPINNER_RATE, 0);
-      if (MOTOR_IS_OFF() || (g_cur_command == COMMAND_ABORT)) {
+      lcd_spinner(SPINNER_RATE, -1);
+      if ((g_cur_command == COMMAND_ABORT)) {
         g_tap_file_complete = 1;
         break;
       }
@@ -397,26 +398,29 @@ void record_file() {
     // exit outer while
     if (g_tap_file_complete) {
       break;
-    }
+    }    
     
     f_write(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
     g_write_index += 128;
-    input_callback();
+    
   }
   
+  // finish any remaining writes
   if (g_write_index != g_read_index) {
     res = f_write(&g_fil, (void*) g_fat_buffer + g_write_index, g_read_index & 0x7F, &br);
   }
 
   signal_timer_stop();
+  
+  // write in the length of the TAP file
   f_lseek(&g_fil, 0x0010);
   f_write(&g_fil, (void*) &g_tap_file_pos, 4, &br);
   f_close(&g_fil);
   
   if (g_cur_command == COMMAND_ABORT) {
-    lcd_title_P(S_LOADING_ABORTED);
+    lcd_title_P(S_OPERATION_ABORTED);
   } else {
-    lcd_title_P(S_LOADING_COMPLETE);
+    lcd_title_P(S_OPERATION_COMPLETE);
   }
 
   // end of load UI indicator
@@ -424,6 +428,11 @@ void record_file() {
 }
 
 
+int free_ram() {
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
 
 int tapuino_hardware_setup(void)
 {
@@ -467,6 +476,8 @@ int tapuino_hardware_setup(void)
   
   serial_init();
   serial_println_P(S_STARTINGINIT);
+  sprintf((char*)g_fat_buffer, "%d", free_ram());
+  serial_println((char*)g_fat_buffer);
   lcd_setup();
   serial_println_P(S_INITI2COK);
   lcd_title_P(S_INIT);
@@ -481,8 +492,8 @@ int tapuino_hardware_setup(void)
   
   if (res == FR_OK) {
     SPI_Speed_Fast();
-    strcpy_P(g_char_buffer, S_DEFAULT_DIR);
-    res = f_opendir(&g_dir, g_char_buffer);
+    strcpy_P((char*)g_fat_buffer, S_DEFAULT_DIR);
+    res = f_opendir(&g_dir, (char*)g_fat_buffer);
   } else {
     lcd_title_P(S_INIT_FAILED);
   }

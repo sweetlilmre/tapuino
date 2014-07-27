@@ -5,6 +5,7 @@
 prog_char S_DEFAULT_DIR[] PROGMEM =  "/";
 prog_char S_DEFAULT_RECORD_DIR[] PROGMEM =  "/recorded";
 prog_char S_MKDIR_FAILED[] PROGMEM = "MKDIR failed!";
+prog_char S_CHDIR_FAILED[] PROGMEM = "CHDIR failed!";
 prog_char S_NAME_PATTERN[] PROGMEM = "rec-%.4d.tap";
 prog_char S_RECORDING[] PROGMEM = "Recording";
 
@@ -25,8 +26,8 @@ prog_char S_READ_FAILED[] PROGMEM = "Read failed";
 prog_char S_OPEN_FAILED[] PROGMEM = "Open failed";
 prog_char S_INVALID_TAP[] PROGMEM = "Invalid TAP!";
 prog_char S_LOADING[] PROGMEM = "Loading:";
-prog_char S_LOADING_COMPLETE[] PROGMEM = "Complete!";
-prog_char S_LOADING_ABORTED[] PROGMEM = "Aborted!";
+prog_char S_OPERATION_COMPLETE[] PROGMEM = "Complete!";
+prog_char S_OPERATION_ABORTED[] PROGMEM = "Aborted!";
 prog_char S_DIRECTORY_ERROR[] PROGMEM = "CHDIR ERROR!";
 prog_char S_MAX_BLANK_LINE[] PROGMEM = "                    ";
 prog_char S_TAP_MAGIC_C64[] PROGMEM = "C64-TAPE-RAW";

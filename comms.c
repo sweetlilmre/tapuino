@@ -110,11 +110,11 @@ void player_handleInput(char ch) {
 }
 
 void input_callback()
-{
+{/*
   if (serial_available() > 0) {
     char ch = serial_read();
     player_handleInput(ch);
-  }
+  }*/
   player_handleInputKeys();
 }
 

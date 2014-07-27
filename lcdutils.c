@@ -6,7 +6,6 @@
 #include "lcd.h"
 #include "lcdutils.h"
 #include "memstrings.h"
-#include "serial.h"
 
 // right arrow character 
 #define DIRECTORY_INDICATOR 0b01111110
@@ -86,7 +85,11 @@ inline void lcd_spinner(int32_t wait, int perc) {
   }
   wait_for = 0;
   lcd_setCursor(MAX_LCD_LINE_LEN - 7, 0);
-  sprintf(g_char_buffer, "%3d%% %c%c", perc, MOTOR_IS_OFF() ? 'm' : 'M', indicators[pos++]);
+  if (perc < 0) {
+    sprintf(g_char_buffer, "     %c%c", MOTOR_IS_OFF() ? 'm' : 'M', indicators[pos++]);
+  } else {
+    sprintf(g_char_buffer, "%3d%% %c%c", perc, MOTOR_IS_OFF() ? 'm' : 'M', indicators[pos++]);
+  }
   lcd_print(g_char_buffer);
 
   if (pos > 3) {
@@ -114,7 +117,6 @@ void lcd_line(char* msg, int line, uint8_t usepgm) {
     memcpy(g_char_buffer, msg, len > MAX_LCD_LINE_LEN ? MAX_LCD_LINE_LEN : len);
   }
   lcd_print(g_char_buffer);
-  serial_println(g_char_buffer);
 }
 
 void lcd_title(char* msg) {

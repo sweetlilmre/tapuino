@@ -9,7 +9,7 @@
 
 // don't mess with this!
 #define FAT_BUF_SIZE        256
-
+#define REC_FINALIZE_TIME   500 // 1 = 1/100th of a second
 // TWI for pullups
 #define TWI_PORT            PORTC
 #define TWI_PIN_SDA         4
