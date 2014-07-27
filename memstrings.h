@@ -7,6 +7,8 @@ extern prog_char S_DEFAULT_DIR[];
 extern prog_char S_DEFAULT_RECORD_DIR[];
 extern prog_char S_MKDIR_FAILED[];
 extern prog_char S_NAME_PATTERN[];
+extern prog_char S_RECORDING[];
+
 
 extern prog_char S_STARTINGINIT[];
 extern prog_char S_INITI2COK[];

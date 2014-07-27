@@ -11,6 +11,7 @@
 
 #include "spi.h"
 #include "ff.h"
+#include "mmc.h"
 #include "diskio.h"
 #include "serial.h"
 #include "comms.h"
@@ -18,6 +19,7 @@
 #include "lcdutils.h"
 #include "memstrings.h"
 #include "fileutils.h"
+#include "menu.h"
 
 
 #ifdef USE_NTSC_TIMING
@@ -45,46 +47,65 @@ static volatile uint8_t g_tap_file_complete;    // flag to indicate that all byt
 static volatile uint32_t g_tap_file_pos;        // current read position in the TAP (bytes)
 static volatile uint32_t g_tap_file_len;        // total length of the TAP  (bytes)
 static uint32_t g_pulse_length = 0;             // length of pulse in uS
-static uint32_t g_pulse_length_save;            
-static uint8_t g_recording = 0;                 // recording flag for the ISR
+static uint32_t g_pulse_length_save;            // dual function: save length for read and first time flag for write
+static volatile uint32_t g_overflow;            // write signal overflow timer detection
 
-
-int g_num_files = 0;
-int g_cur_file_index = 0;
-
-static inline void tap_write_routine() {
-  static uint8_t last_signal = 0;
-  uint8_t signal = TAPE_WRITE_PINS & _BV(TAPE_WRITE_PIN);
+// on rising edge of signal from C64
+ISR(TIMER1_CAPT_vect) {
   uint32_t tap_data;
 
-  if (signal != last_signal) {
-    last_signal = signal;
-    if (signal != 0) {
-      if(g_signal_2nd_half) {
-        tap_data = g_total_timer_count / CYCLE_MULT_8;
-        
-        if (tap_data == 0) {
-          tap_data++;
-        }
-        if (tap_data < 256) {
-          g_fat_buffer[g_read_index++] = (uint8_t) tap_data;
-        } else {
-          g_fat_buffer[g_read_index++] = 0;
-          g_fat_buffer[g_read_index++] = (uint8_t) (g_total_timer_count & 0xff);
-          g_fat_buffer[g_read_index++] = (uint8_t) ((g_total_timer_count & 0xff00) >> 8);
-          g_fat_buffer[g_read_index++] = (uint8_t) ((g_total_timer_count & 0xff0000) >> 16);
-        }
-      } else {
-        g_signal_2nd_half = 0;
-        g_total_timer_count = 0;
-        OCR1A = 0x8;
-      }
+  if(g_signal_2nd_half) {                             // finished measuring 
+    g_pulse_length = ICR1;                            // pulse length = ICR1 i.e. timer count
+    g_pulse_length += (g_overflow << 16);             // add overflows
+    g_pulse_length >>= 1;                             // turn raw tick values at 0.5us into 1us i.e. divide by 2
+    // start counting here
+    g_overflow = 0;
+    TCNT1 = 0;
+    tap_data = g_pulse_length / CYCLE_MULT_8;         // get the standard divided value
+    
+    if (tap_data == 0) {                              // safe guard
+      tap_data++;
+    }
+    if (tap_data < 256) {                             // short signal
+      g_fat_buffer[g_read_index++] = (uint8_t) tap_data;
+      g_tap_file_pos++;
+    } else {                                          // long signal
+      g_fat_buffer[g_read_index++] = 0;
+      g_fat_buffer[g_read_index++] = (uint8_t) (g_pulse_length & 0xff);
+      g_fat_buffer[g_read_index++] = (uint8_t) ((g_pulse_length & 0xff00) >> 8);
+      g_fat_buffer[g_read_index++] = (uint8_t) ((g_pulse_length & 0xff0000) >> 16);
+      g_tap_file_pos += 4;
+    }
+    g_signal_2nd_half = 0;
+    g_pulse_length_save = 1;
+  } else {
+    g_signal_2nd_half = 1;
+    // if this is the first time in, zero the count, otherwise the count starts at the high edge of the signal in the code above
+    if (!g_pulse_length_save) {
+      g_overflow = 0;
+      TCNT1 = 0;
     }
   }
+  
 }
 
-static inline void tap_read_routine() {
+ISR(TIMER1_OVF_vect){
+  g_overflow++;
+}
+
+// timer1 is running at 2MHz or 0.5 uS per tick.
+// signal values are measured in uS, so OCR1A is set to the value from the TAP file (converted into uS) for each signal half
+// i.e. TAP value converted to uS * 2 == full signal length
+ISR(TIMER1_COMPA_vect) {
   uint32_t tap_data;
+
+  // keep track of the number of cycles in case we get to a MOTOR stop situation before the TAP has completed
+  g_total_timer_count += OCR1A;
+  
+  // don't process if the MOTOR is off!
+  if (MOTOR_IS_OFF()) {
+    return;
+  }
   
   if (g_signal_2nd_half) {                // 2nd half of the signal
     if (g_pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
@@ -137,42 +158,42 @@ static inline void tap_read_routine() {
   }
 }
 
-// timer1 is running at 2MHz or 0.5 uS per tick.
-// signal values are measured in uS, so OCR1A is set to the value from the TAP file (converted into uS) for each signal half
-// i.e. TAP value converted to uS * 2 == full signal length
-ISR(TIMER1_COMPA_vect) {
-  // keep track of the number of cycles in case we get to a MOTOR stop situation before the TAP has completed
-  g_total_timer_count += OCR1A;
-  
-  // don't process if the MOTOR is off!
-  if (MOTOR_IS_OFF()) {
-    return;
-  }
-  
-  if (g_recording) {
-    tap_write_routine();
-  } else {
-    tap_read_routine();
-  }
+ISR(TIMER2_COMPA_vect) {
+	disk_timerproc();	/* Drive timer procedure of low level disk I/O module */
 }
 
-void signal_timer_setup() {
+void disk_timer_setup() {
+  TCCR2A = 0;
+  TCCR2B = 0;
+  	/* Start 100Hz system timer (TC2.OC) */
+	OCR2A = F_CPU / 1024 / 100 - 1;
+	TCCR2A = _BV(WGM21);
+  TCCR2B |=  (1 << CS22) | (1 << CS21) | (1 << CS20);  //prescaller 1024 
+	TIMSK2 |= _BV(OCIE2A);
+}
+
+void signal_timer_start(uint8_t recording) {
   TCCR1A = 0x00;   // clear timer registers
   TCCR1B = 0x00;
   TIMSK1 = 0x00;
- 
-  TCCR1B |=  _BV(CS11) | _BV(WGM12);  // pre-scaler 8 = 2 MHZ
-}
+  TCNT1  = 0x00;
 
-void signal_timer_start() {
-  OCR1A = 0xFFFF;
-  TCNT1 = 0;
-  g_total_timer_count = 0;
-  TIMSK1 |=  _BV(OCIE1A);
+  if (recording) {
+    g_overflow = 0;
+    TCCR1B = _BV(ICNC1) | _BV(ICES1) | _BV(CS11);   // input capture, rising edge, pre-scaler 8 = 2 MHZ
+    TIMSK1 = _BV(ICIE1) | _BV(TOIE1);               // input capture interrupt, overflow interrupt
+  } else {
+    g_total_timer_count = 0;
+    TCCR1B |=  _BV(CS11) | _BV(WGM12);              // pre-scaler 8 = 2 MHZ, CTC Mode
+    OCR1A = 0xFFFF;
+    TIMSK1 |=  _BV(OCIE1A);                         // output compare interrupt
+  }
 }
 
 void signal_timer_stop() {
-  TIMSK1 &= ~_BV(OCIE1A);
+  // TIMSK1 &= ~_BV(OCIE1A);
+  // stop all timer1 interrupts
+  TIMSK1 = 0;
 }
 
 void print_pos() {
@@ -230,7 +251,7 @@ int play_file(FILINFO* pfile_info)
   TAPE_READ_LOW();
   SENSE_ON();
   // Start send-ISR
-  signal_timer_start();
+  signal_timer_start(0);
 
   while (br > 0) {
     // Wait until ISR is in the new half of the buffer
@@ -257,7 +278,6 @@ int play_file(FILINFO* pfile_info)
     f_read(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
     g_write_index += 128;
     perc = (g_tap_file_pos * 100) / g_tap_file_len;
-    print_pos();
     input_callback();
   }
 
@@ -325,7 +345,7 @@ void record_file() {
     f_close(&g_fil);
     br++;
   }
-  res = f_open(&g_fil, g_char_buffer, FA_CREATE_NEW);
+  res = f_open(&g_fil, g_char_buffer, FA_CREATE_NEW | FA_WRITE);
   if (res != FR_OK) {
     lcd_status_P(S_OPEN_FAILED);
     busy_spinner();
@@ -342,11 +362,23 @@ void record_file() {
   g_read_index = 20; // Skip header
   g_tap_file_pos = 20;
   g_signal_2nd_half = 0;
+  // set flag to indicate the start of recording
+  // let the recording routine know that this the first measurement is about to start
+  g_pulse_length_save = 0;
   
-  lcd_title_P(S_LOADING);
+  lcd_title_P(S_RECORDING);
   SENSE_ON();
+  while (MOTOR_IS_OFF()) {
+    input_callback();
+    if (g_cur_command == COMMAND_ABORT) {
+      break;
+    }
+    // feedback to the user
+    lcd_spinner(SPINNER_RATE, 0);
+  }
+
   // Start send-ISR
-  signal_timer_start();
+  signal_timer_start(1);
 
   while (!MOTOR_IS_OFF()) {
     while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
@@ -354,7 +386,6 @@ void record_file() {
       input_callback();
       // feedback to the user
       lcd_spinner(SPINNER_RATE, 0);
-      
       if (MOTOR_IS_OFF() || (g_cur_command == COMMAND_ABORT)) {
         g_tap_file_complete = 1;
         break;
@@ -372,10 +403,12 @@ void record_file() {
   }
   
   if (g_write_index != g_read_index) {
-    f_write(&g_fil, (void*) g_fat_buffer + g_write_index, g_read_index & 0x80, &br);
+    res = f_write(&g_fil, (void*) g_fat_buffer + g_write_index, g_read_index & 0x7F, &br);
   }
 
   signal_timer_stop();
+  f_lseek(&g_fil, 0x0010);
+  f_write(&g_fil, (void*) &g_tap_file_pos, 4, &br);
   f_close(&g_fil);
   
   if (g_cur_command == COMMAND_ABORT) {
@@ -388,188 +421,6 @@ void record_file() {
   busy_spinner();
 }
 
-void handle_play_mode(FILINFO* pfile_info) {
-  lcd_title_P(S_SELECT_FILE);
-  if (!get_file_at_index(pfile_info, g_cur_file_index)) {
-    // shouldn't happen...
-    lcd_title_P(S_NO_FILES_FOUND);
-    return;
-  }
-
-  display_filename(pfile_info);
-  
-  while(1)
-  {
-    switch(g_cur_command)
-    {
-      case COMMAND_SELECT:
-      {
-        if (pfile_info->fattrib & AM_DIR) {
-          if (change_dir(pfile_info->fname) == FR_OK) {
-            g_num_files = get_num_files(pfile_info);
-            g_cur_file_index = 0;
-            get_file_at_index(pfile_info, g_cur_file_index);
-            display_filename(pfile_info);
-          } else {
-            lcd_status_P(S_DIRECTORY_ERROR);
-          }
-        } else {
-          display_filename(pfile_info);
-          play_file(pfile_info);
-          lcd_title_P(S_SELECT_FILE);
-          // buffer is used so get the file again
-          get_file_at_index(pfile_info, g_cur_file_index);
-          display_filename(pfile_info);
-        }
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      case COMMAND_ABORT:
-      {
-        if (g_fs.cdir != 0) {
-          if (change_dir("..") == FR_OK) {
-            g_num_files = get_num_files(pfile_info);
-            g_cur_file_index = 0;
-            get_file_at_index(pfile_info, g_cur_file_index);
-            display_filename(pfile_info);
-          } else {
-            lcd_status_P(S_DIRECTORY_ERROR);
-          }        
-        } else {
-          // back to main menu
-          return;
-        }
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      case COMMAND_NEXT:
-      {
-        if (++g_cur_file_index >= g_num_files) {
-          g_cur_file_index = 0;
-        }
-        get_file_at_index(pfile_info, g_cur_file_index);
-        display_filename(pfile_info);
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      case COMMAND_PREVIOUS:
-      {
-        if (--g_cur_file_index < 0) {
-          g_cur_file_index = g_num_files - 1;
-        }
-        get_file_at_index(pfile_info, g_cur_file_index);
-        display_filename(pfile_info);
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      default:
-        input_callback();
-      break;
-    }
-    filename_ticker();
-  }
-}
-
-void handle_mode_record(FILINFO* pfile_info) {
-  lcd_title_P(S_READY_RECORD);
-  lcd_status_P(S_PRESS_START);
-  
-  while(1)
-  {
-    switch(g_cur_command)
-    {
-      case COMMAND_SELECT:
-      {
-        record_file();
-        lcd_title_P(S_READY_RECORD);
-        lcd_status_P(S_PRESS_START);
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      case COMMAND_ABORT:
-      {
-        // back to main menu
-        return;
-      }
-      default:
-        input_callback();
-      break;
-    }
-  }
-}
-
-void handle_mode_options() {
-}
-
-
-#define MODE_FIRST    0
-#define MODE_PLAY     0
-#define MODE_RECORD   1
-#define MODE_OPTIONS  2
-#define MODE_LAST     2
-
-uint8_t handle_select_mode() {
-  uint8_t prev_mode = MODE_LAST;
-  uint8_t cur_mode = MODE_PLAY;
-
-  lcd_title_P(S_SELECT_MODE);
-  
-  while(1)
-  {
-    if (prev_mode != cur_mode) {
-      switch (cur_mode)
-      {
-        case MODE_PLAY:
-          lcd_status_P(S_MODE_PLAY);
-        break;
-        case MODE_RECORD:
-          lcd_status_P(S_MODE_RECORD);
-        break;
-        case MODE_OPTIONS:
-          lcd_status_P(S_MODE_OPTIONS);
-        break;
-      }
-      prev_mode = cur_mode;
-    }
-    
-    switch(g_cur_command)
-    {
-      case COMMAND_SELECT:
-      {
-        g_cur_command = COMMAND_IDLE;
-        return cur_mode;
-      }
-      case COMMAND_ABORT:
-      {
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      case COMMAND_NEXT:
-      {
-        if (cur_mode == MODE_LAST) {
-          cur_mode = MODE_FIRST;
-        } else {
-          cur_mode++;
-        }
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      case COMMAND_PREVIOUS:
-      {
-        if (cur_mode == MODE_FIRST) {
-          cur_mode = MODE_LAST;
-        } else {
-          cur_mode--;
-        }
-        g_cur_command = COMMAND_IDLE;
-        break;
-      }
-      default:
-        input_callback();
-      break;
-    }
-  }
-}
 
 
 int tapuino_hardware_setup(void)
@@ -610,7 +461,7 @@ int tapuino_hardware_setup(void)
   KEYS_READ_DDR &= ~_BV(KEY_NEXT_PIN);
   KEYS_READ_PORT |= _BV(KEY_NEXT_PIN);
   
-  signal_timer_setup();
+  disk_timer_setup();
   
   serial_init();
   serial_println_P(S_STARTINGINIT);
@@ -648,21 +499,5 @@ void tapuino_run()
     return;
   }
   
-  if ((g_num_files = get_num_files(&file_info)) == 0) {
-    lcd_title_P(S_NO_FILES_FOUND);
-    return;
-  }
-  while (1) {
-    switch (handle_select_mode()) {
-      case MODE_PLAY:
-        handle_play_mode(&file_info);
-      break;
-      case MODE_RECORD:
-        handle_mode_record(&file_info);
-      break;
-      case MODE_OPTIONS:
-        handle_mode_options();
-      break;
-    }
-  }
+  main_menu(&file_info);
 }

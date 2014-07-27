@@ -1,6 +1,8 @@
 #ifndef _MMC_H__
 #define _MMC_H__
 
+void disk_timerproc (void);
+
 /* Definitions for MMC/SDC command */
 #define CMD0	(0)			/* GO_IDLE_STATE */
 #define CMD1	(1)			/* SEND_OP_COND (MMC) */

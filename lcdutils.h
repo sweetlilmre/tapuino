@@ -12,6 +12,6 @@ void lcd_title_P(const char* msg);
 void lcd_status(char* msg);
 void lcd_status_P(const char* msg);
 
-extern char g_char_buffer[MAX_LCD_LINE_LEN + 1];
+extern char g_char_buffer[];
 
 #endif

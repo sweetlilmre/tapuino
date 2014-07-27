@@ -20,6 +20,9 @@
 static volatile
 DSTATUS Stat = STA_NOINIT;	/* Disk status */
 
+static volatile
+BYTE Timer1, Timer2;	/* 100Hz decrement timer */
+
 static
 BYTE CardType;			/* Card type flags */
 
@@ -97,11 +100,12 @@ int wait_ready (	/* 1:Ready, 0:Timeout */
 )
 {
 	BYTE d;
-  UINT tmr = wt * 10;
 
-	do {
+
+	Timer2 = wt / 10;
+	do
 		d = xchg_spi(0xFF);
-	} while (d != 0xFF && tmr--);
+	while (d != 0xFF && Timer2);
 
 	return (d == 0xFF) ? 1 : 0;
 }
@@ -153,10 +157,10 @@ int rcvr_datablock (
 	BYTE token;
 
 
-	UINT tmr = 2000;
+	Timer1 = 20;
 	do {							/* Wait for data packet in timeout of 200ms */
 		token = xchg_spi(0xFF);
-	} while ((token == 0xFF) && tmr--);
+	} while ((token == 0xFF) && Timer1);
 	if (token != 0xFE) return 0;	/* If not valid data token, retutn with error */
 
 	rcvr_spi_multi(buff, btr);		/* Receive the data block into buffer */
@@ -264,7 +268,7 @@ DSTATUS disk_initialize (
 )
 {
 	BYTE n, cmd, ty, ocr[4];
-  UINT tmr;
+
 
 	if (pdrv) return STA_NOINIT;		/* Supports only single drive */
 	power_off();						/* Turn off the socket power to reset the card */
@@ -275,12 +279,12 @@ DSTATUS disk_initialize (
 
 	ty = 0;
 	if (send_cmd(CMD0, 0) == 1) {			/* Enter Idle state */
-		tmr = 1000;						/* Initialization timeout of 1000 msec */
+		Timer1 = 100;						/* Initialization timeout of 1000 msec */
 		if (send_cmd(CMD8, 0x1AA) == 1) {	/* SDv2? */
 			for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);		/* Get trailing return value of R7 resp */
 			if (ocr[2] == 0x01 && ocr[3] == 0xAA) {				/* The card can work at vdd range of 2.7-3.6V */
-				while (tmr-- && send_cmd(ACMD41, 1UL << 30));	/* Wait for leaving idle state (ACMD41 with HCS bit) */
-				if (tmr && send_cmd(CMD58, 0) == 0) {		/* Check CCS bit in the OCR */
+				while (Timer1 && send_cmd(ACMD41, 1UL << 30));	/* Wait for leaving idle state (ACMD41 with HCS bit) */
+				if (Timer1 && send_cmd(CMD58, 0) == 0) {		/* Check CCS bit in the OCR */
 					for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);
 					ty = (ocr[0] & 0x40) ? CT_SD2 | CT_BLOCK : CT_SD2;	/* SDv2 */
 				}
@@ -291,8 +295,8 @@ DSTATUS disk_initialize (
 			} else {
 				ty = CT_MMC; cmd = CMD1;	/* MMCv3 */
 			}
-			while (tmr-- && send_cmd(cmd, 0));			/* Wait for leaving idle state */
-			if (!tmr || send_cmd(CMD16, 512) != 0)	/* Set R/W block length to 512 */
+			while (Timer1 && send_cmd(cmd, 0));			/* Wait for leaving idle state */
+			if (!Timer1 || send_cmd(CMD16, 512) != 0)	/* Set R/W block length to 512 */
 				ty = 0;
 		}
 	}
@@ -520,4 +524,11 @@ DRESULT disk_ioctl (
 
 void disk_timerproc (void)
 {
+	BYTE n;
+
+	n = Timer1;				/* 100Hz decrement timer */
+	if (n) Timer1 = --n;
+	n = Timer2;
+	if (n) Timer2 = --n;
+
 }
