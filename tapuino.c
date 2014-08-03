@@ -246,11 +246,11 @@ int play_file(FILINFO* pfile_info)
       input_callback();
       // feedback to the user
       lcd_spinner(SPINNER_RATE, perc);
-      
-      // if the C64 stopped the motor for longer than the longest possible signal time
-      // then we need to get out of here. This happens in Rambo First Blood Part II.
-      // The loader seems to stop the tape before the tap file is complete.
-      if ((g_total_timer_count > MAX_SIGNAL_CYCLES) || (g_cur_command == COMMAND_ABORT)) {
+
+      // for multiload games we need to remove the previous timeout fix
+      // (checking against g_total_timer_count > MAX_SIGNAL_CYCLES) and look for 
+      // g_tap_file_complete instead.
+      if (g_tap_file_complete || (g_cur_command == COMMAND_ABORT)) {
         g_tap_file_complete = 1;
         break;
       }
