@@ -3,7 +3,7 @@
 
 void lcd_setup();
 
-void filename_ticker();
+void filename_ticker(uint32_t cur_tick);
 void display_filename(FILINFO* pfile_info);
 inline void lcd_spinner(int32_t wait, int perc);
 void lcd_show_dir();

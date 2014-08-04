@@ -17,7 +17,6 @@
 int g_num_files = 0;
 int g_cur_file_index = 0;
 
-
 void handle_play_mode(FILINFO* pfile_info) {
   lcd_title_P(S_SELECT_FILE);
   if (!get_file_at_index(pfile_info, g_cur_file_index)) {
@@ -92,11 +91,8 @@ void handle_play_mode(FILINFO* pfile_info) {
         g_cur_command = COMMAND_IDLE;
         break;
       }
-      default:
-        input_callback();
-      break;
     }
-    filename_ticker();
+    filename_ticker(get_timer_tick());
   }
 }
 
@@ -121,9 +117,6 @@ void handle_mode_record(FILINFO* pfile_info) {
         // back to main menu
         return;
       }
-      default:
-        input_callback();
-      break;
     }
   }
 }
@@ -188,9 +181,6 @@ uint8_t handle_select_mode() {
         g_cur_command = COMMAND_IDLE;
         break;
       }
-      default:
-        input_callback();
-      break;
     }
   }
 }

@@ -1,15 +1,18 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
-#define SPINNER_RATE        12500
+// LCD Definitions
 #define LCD_I2C_ADDR        0x27
 #define LCD_NUM_LINES       2
 #define MAX_LCD_LINE_LEN    16
-#define TICKER_HOLD         5
 
-// don't mess with this!
-#define FAT_BUF_SIZE        256
-#define REC_FINALIZE_TIME   500 // 1 = 1/100th of a second
+// Timing constants
+#define SPINNER_RATE        250  // milliseconds, granularity 10ms
+#define TICKER_HOLD         5    // ticker begin and end hold time in SPINNER_RATE units
+#define KEY_REPEAT_START    500  // milliseconds, granularity 10ms
+#define KEY_REPEAT_NEXT     300  // milliseconds, granularity 10ms
+#define REC_FINALIZE_TIME   5000 // milliseconds, granularity 10ms
+
 // TWI for pullups
 #define TWI_PORT            PORTC
 #define TWI_PIN_SDA         4
@@ -28,7 +31,6 @@
 #define TAPE_READ_PINS      PIND
 #define TAPE_READ_LOW()     TAPE_READ_PORT &= ~_BV(TAPE_READ_PIN)
 #define TAPE_READ_HIGH()    TAPE_READ_PORT |=  _BV(TAPE_READ_PIN)
-#define TAPE_READ_TOGGLE()  TAPE_READ_PINS |=  _BV(TAPE_READ_PIN)
 
 #define TAPE_WRITE_PORT     PORTB
 #define TAPE_WRITE_DDR      DDRB
@@ -48,4 +50,5 @@
 #define KEY_ABORT_PIN       2
 #define KEY_PREV_PIN        1
 #define KEY_NEXT_PIN        0
+
 #endif

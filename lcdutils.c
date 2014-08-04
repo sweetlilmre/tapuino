@@ -28,15 +28,15 @@ uint8_t backslashChar[8] = {
     0b00000
 };
 
-void filename_ticker() {
-  static uint32_t wait_for = 0;
+void filename_ticker(uint32_t cur_tick) {
+  static uint32_t last_tick = 0;
   char* ticker_string;
 
   if (g_ticker_enabled) {
-    if (wait_for++ < (SPINNER_RATE*2)) {
+    if (cur_tick - last_tick < (SPINNER_RATE / 10)) {
       return;
     }
-    wait_for = 0;
+    last_tick = cur_tick;
 
     if (g_ticker_hold) {
       g_ticker_hold--;
@@ -76,14 +76,15 @@ void display_filename(FILINFO* pfile_info) {
   g_ticker_enabled = strlen(ticker_string) > (MAX_LCD_LINE_LEN - 1);
 }
 
-inline void lcd_spinner(int32_t wait, int perc) {
+inline void lcd_spinner(int32_t cur_tick, int perc) {
   static uint8_t indicators[] = {'|', '/', '-', 1};
   static uint8_t pos = 0;
-  static int32_t wait_for = 0;
-  if (wait_for++ < wait) {
+  static int32_t last_tick = 0;
+  if (cur_tick - last_tick < (SPINNER_RATE / 10)) {
     return;
   }
-  wait_for = 0;
+  
+  last_tick = cur_tick;
   lcd_setCursor(MAX_LCD_LINE_LEN - 7, 0);
   if (perc < 0) {
     sprintf(g_char_buffer, "     %c%c", MOTOR_IS_OFF() ? 'm' : 'M', indicators[pos++]);

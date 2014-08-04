@@ -49,7 +49,12 @@ static volatile uint32_t g_tap_file_len;        // total length of the TAP  (byt
 static uint32_t g_pulse_length = 0;             // length of pulse in uS
 static uint32_t g_pulse_length_save;            // save length for read
 static volatile uint32_t g_overflow;            // write signal overflow timer detection
-static volatile uint32_t g_timer_tick = 0;      // timer tick at 100Hz
+static volatile uint32_t g_timer_tick = 0;      // timer tick at 100Hz (10 ms interval)
+
+uint32_t get_timer_tick() {
+  return g_timer_tick;
+}
+
 // on rising edge of signal from C64
 ISR(TIMER1_CAPT_vect) {
   uint32_t tap_data;
@@ -157,6 +162,7 @@ ISR(TIMER1_COMPA_vect) {
 
 ISR(TIMER2_COMPA_vect) {
 	disk_timerproc();	// Drive timer procedure for FatFs low level disk I/O module
+  input_callback();
   g_timer_tick++;   // system ticker for timing
 }
 
@@ -243,9 +249,9 @@ int play_file(FILINFO* pfile_info)
     // Wait until ISR is in the new half of the buffer
     while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
       // process input for abort
-      input_callback();
+      //input_callback();
       // feedback to the user
-      lcd_spinner(SPINNER_RATE, perc);
+      lcd_spinner(g_timer_tick, perc);
 
       // for multiload games we need to remove the previous timeout fix
       // (checking against g_total_timer_count > MAX_SIGNAL_CYCLES) and look for 
@@ -264,15 +270,15 @@ int play_file(FILINFO* pfile_info)
     f_read(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
     g_write_index += 128;
     perc = (g_tap_file_pos * 100) / g_tap_file_len;
-    input_callback();
+    //input_callback();
   }
 
   // wait for the remaining buffer to be read.
   while (!g_tap_file_complete) {
     // process input for abort
-    input_callback();
+    //input_callback();
     // feedback to the user
-    lcd_spinner(SPINNER_RATE, perc);
+    lcd_spinner(g_timer_tick, perc);
     // we need to do the same trick as above, BC's Quest for Tires stops the motor right near the
     // end of the tape, then restarts for the last bit of data, so we can't rely on the motor signal
     // a better approach might be to see if we have read all the data and then break. //
@@ -362,12 +368,12 @@ void record_file() {
   lcd_status_P(S_MAX_BLANK_LINE);
   SENSE_ON();
   while (MOTOR_IS_OFF()) {
-    input_callback();
+    //input_callback();
     if (g_cur_command == COMMAND_ABORT) {
       break;
     }
     // feedback to the user
-    lcd_spinner(SPINNER_RATE, -1);
+    lcd_spinner(g_timer_tick, -1);
   }
 
   // Start recv-ISR
@@ -378,7 +384,7 @@ void record_file() {
       // nasty bit of code to wait after the motor is shut off to finalise the TAP
       if (MOTOR_IS_OFF()) {
         // use the 100Hz timer to wait 5 seconds after the motor has shut off
-        if ((g_timer_tick - tmp) > REC_FINALIZE_TIME) {
+        if ((g_timer_tick - tmp) > (REC_FINALIZE_TIME / 10)) {
           g_tap_file_complete = 1;
           break;
         }
@@ -386,9 +392,9 @@ void record_file() {
         tmp = g_timer_tick;
       }
       // process input for abort
-      input_callback();
+      //input_callback();
       // feedback to the user
-      lcd_spinner(SPINNER_RATE, -1);
+      lcd_spinner(g_timer_tick, -1);
       if ((g_cur_command == COMMAND_ABORT)) {
         g_tap_file_complete = 1;
         break;

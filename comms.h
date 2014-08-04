@@ -9,6 +9,6 @@
 #define COMMAND_ABORT       4
 
 void input_callback();
-extern uint8_t g_cur_command;
+extern volatile uint8_t g_cur_command;
 
 #endif

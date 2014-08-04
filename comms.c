@@ -2,119 +2,78 @@
 #include <inttypes.h>
 #include "config.h"
 #include "comms.h"
-#include "serial.h"
 
-#define RECV_WAIT_CMD       0
-#define RECV_WAIT_DATA      1
-#define MAX_CHECKS 20
+volatile uint8_t g_cur_command = COMMAND_IDLE;
 
-uint8_t g_debounced_state = 0;
-uint8_t g_key_state[MAX_CHECKS] = {0};
-uint8_t g_debounce_index = 0;
-uint8_t g_recvState = RECV_WAIT_CMD;
-uint8_t g_pending_command = COMMAND_IDLE;
-uint8_t g_cur_command = COMMAND_IDLE;
-uint8_t g_last_command = COMMAND_IDLE;
+//Debounce
+#define REPEAT_MASK     (_BV(KEY_PREV_PIN) | _BV(KEY_NEXT_PIN))   // repeat: key1, key2 
+volatile unsigned char  key_press = 0;
+volatile unsigned char  key_state = 0;
+volatile unsigned char  key_rpt = 0;
 
-void debounce_switches() {
-  uint8_t i,j;
-  g_key_state[g_debounce_index] = KEYS_READ_PINS;
-  ++g_debounce_index;
-  j = 0xFF;
-  for (i = 0; i < MAX_CHECKS; i++) {
-    j = j & g_key_state[i];
-  }
-  g_debounced_state = j;
-  if (g_debounce_index >= MAX_CHECKS) {
-    g_debounce_index = 0;
-  }
+/*--------------------------------------------------------------------------
+  FUNC: 8/1/11 - Used to read debounced button presses
+  PARAMS: A keymask corresponding to the pin for the button you with to poll
+  RETURNS: A keymask where any high bits represent a button press
+--------------------------------------------------------------------------*/
+unsigned char get_key_press( unsigned char key_mask ) {
+//  cli();			// read and clear atomic !
+  key_mask &= key_press;	// read key(s)
+  key_press ^= key_mask;	// clear key(s)
+//  sei();
+  return key_mask;
 }
+
+/*--------------------------------------------------------------------------
+  FUNC: 8/1/11 - Used to check for debounced buttons that are held down
+  PARAMS: A keymask corresponding to the pin for the button you with to poll
+  RETURNS: A keymask where any high bits is a button held long enough for
+		its input to be repeated
+--------------------------------------------------------------------------*/
+unsigned char get_key_rpt( unsigned char key_mask ) { 
+//  cli();               // read and clear atomic ! 
+  key_mask &= key_rpt;                           // read key(s) 
+  key_rpt ^= key_mask;                           // clear key(s) 
+//  sei(); 
+  return key_mask; 
+} 
 
 void player_handleInputKeys() {
-  uint8_t tmp_command = COMMAND_IDLE;
-  debounce_switches();
-  
-  if (g_debounced_state & _BV(KEY_SELECT_PIN)) {
-    tmp_command = COMMAND_SELECT;
-  }
-  if (g_debounced_state & _BV(KEY_ABORT_PIN)) {
-    tmp_command = COMMAND_ABORT;
-  }
-  if (g_debounced_state & _BV(KEY_PREV_PIN)) {
-    tmp_command = COMMAND_PREVIOUS;
-  }
-  if (g_debounced_state & _BV(KEY_NEXT_PIN)) {
-    tmp_command = COMMAND_NEXT;
-  }
-  if (tmp_command != g_last_command) {
-    g_cur_command = tmp_command;
-    g_last_command = tmp_command;
-  }
-}
-
-void player_handleInput(char ch) {
-  if (ch >= 'a' && ch <= 'z') {
-    ch = (ch - 'a') + 'A';
+  if (get_key_press(_BV(KEY_SELECT_PIN))) {
+    g_cur_command = COMMAND_SELECT;
   }
   
-  switch(g_recvState) {
-    case RECV_WAIT_CMD:
-    {
-      switch(ch) 
-      {
-        case 'S':
-        {
-          g_pending_command = COMMAND_SELECT;
-          g_recvState = RECV_WAIT_DATA;
-          break;
-        }
-        case 'N':
-        {
-          g_pending_command = COMMAND_NEXT;
-          g_recvState = RECV_WAIT_DATA;
-          break;
-        }
-        case 'P':
-        {
-          g_pending_command = COMMAND_PREVIOUS;
-          g_recvState = RECV_WAIT_DATA;
-          break;
-        }
-        case 'A':
-        {
-          g_pending_command = COMMAND_ABORT;
-          g_recvState = RECV_WAIT_DATA;
-          break;
-        }
-      }
-      break;
-    }
-    
-    case RECV_WAIT_DATA:
-    {
-      if (ch != '\n') {
-        if (ch == '\r') {
-          // ignore carriage return
-          return;
-        } else {
-          // invalid command
-          g_recvState = RECV_WAIT_CMD;
-        }
-      } else {
-        g_cur_command = g_pending_command;
-        g_recvState = RECV_WAIT_CMD;
-      }
-      break;
-    }
+  if (get_key_press(_BV(KEY_ABORT_PIN))) {
+    g_cur_command = COMMAND_ABORT;
+  }
+  
+  if (get_key_press(_BV(KEY_PREV_PIN)) || get_key_rpt(_BV(KEY_PREV_PIN))) {
+    g_cur_command = COMMAND_PREVIOUS;
+  }
+  
+  if (get_key_press(_BV(KEY_NEXT_PIN)) || get_key_rpt(_BV(KEY_NEXT_PIN))) {
+    g_cur_command = COMMAND_NEXT;
   }
 }
 
 void input_callback()
-{/*
-  if (serial_available() > 0) {
-    char ch = serial_read();
-    player_handleInput(ch);
-  }*/
+{
+  static unsigned char ct0, ct1, rpt;
+  unsigned char i;
+
+  i = key_state ^ KEYS_READ_PINS;    // key changed ?
+  ct0 = ~( ct0 & i );          // reset or count ct0
+  ct1 = ct0 ^ (ct1 & i);       // reset or count ct1
+  i &= ct0 & ct1;              // count until roll over ?
+  key_state ^= i;              // then toggle debounced state
+  key_press |= key_state & i;  // 0->1: key press detect
+
+  if( (key_state & REPEAT_MASK) == 0 )   // check repeat function 
+     rpt = (KEY_REPEAT_START / 10);      // start delay 
+  if( --rpt == 0 ){ 
+    rpt = (KEY_REPEAT_NEXT / 10);         // repeat delay 
+    key_rpt |= key_state & REPEAT_MASK; 
+  } 
   player_handleInputKeys();
 }
 

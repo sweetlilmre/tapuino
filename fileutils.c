@@ -2,9 +2,11 @@
 
 #include "ff.h"
 #include "config.h"
+#include "fileutils.h"
 
 #define DEFAULT_DIR "/"
 #define INVALID_FILE_ATTR   (AM_VOL)
+
 
 FATFS g_fs;
 DIR g_dir;

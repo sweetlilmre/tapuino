@@ -1,6 +1,8 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
+#define FAT_BUF_SIZE        256
+
 extern FATFS g_fs;
 extern DIR g_dir;
 extern FIL g_fil;
