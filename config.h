@@ -2,9 +2,19 @@
 #define _CONFIG_H
 
 // LCD Definitions
-#define LCD_I2C_ADDR        0x27
-#define LCD_NUM_LINES       2
-#define MAX_LCD_LINE_LEN    16
+// I2C config and expander data lines
+#define LCD_I2C_ADDR        0x27 // I2C address for the LCD 
+#define LCD_BIT_RS          0    // Register select
+#define LCD_BIT_RW          1    // Read / Write 
+#define LCD_BIT_EN          2    // Enable
+#define LCD_BIT_BACKLIGHT   3    // Backlight
+#define LCD_BIT_DATA0       4    // 4 bit data, bit 0
+#define LCD_BIT_DATA1       5    // 4 bit data, bit 1 
+#define LCD_BIT_DATA2       6    // 4 bit data, bit 2
+#define LCD_BIT_DATA3       7    // 4 bit data, bit 3
+// dimension config
+#define LCD_NUM_LINES       2    // number of display lines on the LCD
+#define MAX_LCD_LINE_LEN    16   // max number of characters on a line
 
 // Timing constants
 #define SPINNER_RATE        250  // milliseconds, granularity 10ms

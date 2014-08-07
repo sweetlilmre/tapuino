@@ -9,6 +9,7 @@
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 
+#include "config.h"
 #include "i2cmaster.h"
 #include "LCD.h"
 
@@ -42,7 +43,7 @@ uint8_t _backlightval;
 
   
 void send(uint8_t value, uint8_t mode);
-void write4bits(uint8_t value);
+void write4bits(uint8_t value, uint8_t mode);
 void expanderWrite(uint8_t _data);
 void pulseEnable(uint8_t _data);
 
@@ -81,7 +82,7 @@ void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize) {
 	_delay_ms(50); 
   
 	// Now we pull both RS and R/W low to begin commands
-	expanderWrite(_backlightval);	// reset expanderand turn backlight off (Bit 8 =1)
+	lcd_noBacklight();	// reset expander and turn backlight off (Bit 8 =1)
 	_delay_ms(1000);
 
   	//put the LCD into 4 bit mode
@@ -89,19 +90,19 @@ void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize) {
 	// figure 24, pg 46
 	
 	  // we start in 8bit mode, try to set 4 bit mode
-   write4bits(0x03 << 4);
+   write4bits(0x03, 0);
    _delay_us(4500); // wait min 4.1ms
    
    // second try
-   write4bits(0x03 << 4);
+   write4bits(0x03, 0);
    _delay_us(4500); // wait min 4.1ms
    
    // third go!
-   write4bits(0x03 << 4); 
+   write4bits(0x03, 0); 
    _delay_us(150);
    
    // finally, set to 4-bit interface
-   write4bits(0x02 << 4); 
+   write4bits(0x02, 0); 
 
 
 	// set # lines, font size, etc.
@@ -211,20 +212,20 @@ void lcd_createChar(uint8_t location, uint8_t charmap[]) {
   int i;
 	location &= 0x7; // we only have 8 locations 0-7
 	command(LCD_SETCGRAMADDR | (location << 3));
-	for (i=0; i<8; i++) {
+	for (i = 0; i < 8; i++) {
 		lcd_write(charmap[i]);
 	}
 }
 
 // Turn the (optional) backlight off/on
 void lcd_noBacklight(void) {
-	_backlightval=LCD_NOBACKLIGHT;
-	expanderWrite(0);
+	_backlightval = LCD_NOBACKLIGHT;
+	expanderWrite(_backlightval);
 }
 
 void lcd_backlight(void) {
-	_backlightval=LCD_BACKLIGHT;
-	expanderWrite(0);
+	_backlightval = LCD_BACKLIGHT;
+	expanderWrite(_backlightval);
 }
 
 void lcd_print(char* msg) {
@@ -245,33 +246,27 @@ void lcd_print_P(const char *msg) {
 
 // write either command or data
 void send(uint8_t value, uint8_t mode) {
-	uint8_t highnib = value & 0xf0;
-	uint8_t lownib = (value<<4) & 0xf0;
-  write4bits((highnib) | mode);
-	write4bits((lownib) | mode); 
+	uint8_t highnib = value >> 4;
+	uint8_t lownib = value & 0x0f;
+  write4bits(highnib, mode);
+	write4bits(lownib, mode); 
 }
 
-void write4bits(uint8_t value) {
-/*
+void write4bits(uint8_t value, uint8_t mode) {
   uint8_t res = 0;
-  uint8_t tmp = value >> 4;
-  if (tmp & 1) res |= _BV(LCD_BIT_DATA0);
-  tmp >>= 1;
-  if (tmp & 1) res |= _BV(LCD_BIT_DATA1);
-  tmp >>= 1;
-  if (tmp & 1) res |= _BV(LCD_BIT_DATA2);
-  tmp >>= 1;
-  if (tmp & 1) res |= _BV(LCD_BIT_DATA3);
-  res <<= 4;
-  value = (value & 0x0f) | res;
-*/  
-	expanderWrite(value);
-	pulseEnable(value);
+  if (value & 0x1) res |= _BV(LCD_BIT_DATA0);
+  if (value & 0x2) res |= _BV(LCD_BIT_DATA1);
+  if (value & 0x4) res |= _BV(LCD_BIT_DATA2);
+  if (value & 0x8) res |= _BV(LCD_BIT_DATA3);
+  res |= mode | _backlightval;
+
+	expanderWrite(res);
+	pulseEnable(res);
 }
 
 void expanderWrite(uint8_t _data){                                        
 	i2c_start((_addr << 1) | I2C_WRITE);
-	i2c_write((_data) | _backlightval);
+	i2c_write(_data);
 	i2c_stop();   
 }
 

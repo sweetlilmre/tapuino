@@ -42,49 +42,36 @@
 #define LCD_5x10DOTS 0x04
 #define LCD_5x8DOTS 0x00
 
-#define LCD_BIT_RS        0
-#define LCD_BIT_RW        1
-#define LCD_BIT_EN        2
-#define LCD_BIT_BACKLIGHT 3
-#define LCD_BIT_DATA0     4
-#define LCD_BIT_DATA1     5 
-#define LCD_BIT_DATA2     6
-#define LCD_BIT_DATA3     7
-
 // flags for backlight control
 #define LCD_BACKLIGHT     _BV(LCD_BIT_BACKLIGHT)
 #define LCD_NOBACKLIGHT   0x00
 
-//#define En 0b00000100  /* Enable bit */
-//#define Rw 0b00000010  /* Read/Write bit */
-//#define Rs 0b00000001  /* Register select bit */
-
-  void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t rows, uint8_t charsize); // = LCD_5x8DOTS 
-  void lcd_clear();
-  void lcd_home();
-  void lcd_noDisplay();
-  void lcd_display();
-  void lcd_noBlink();
-  void lcd_blink();
-  void lcd_noCursor();
-  void lcd_cursor();
-  void lcd_scrollDisplayLeft();
-  void lcd_scrollDisplayRight();
-  void lcd_printLeft();
-  void lcd_printRight();
-  void lcd_leftToRight();
-  void lcd_rightToLeft();
-  void lcd_shiftIncrement();
-  void lcd_shiftDecrement();
-  void lcd_noBacklight();
-  void lcd_backlight();
-  void lcd_autoscroll();
-  void lcd_noAutoscroll(); 
-  void lcd_createChar(uint8_t, uint8_t[]);
-  void lcd_setCursor(uint8_t, uint8_t); 
-  void lcd_command(uint8_t);
-  void lcd_print(char* msg);
-  void lcd_print_P(const char *msg);
-  void lcd_write(uint8_t value);
+void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t rows, uint8_t charsize); // = LCD_5x8DOTS 
+void lcd_clear();
+void lcd_home();
+void lcd_noDisplay();
+void lcd_display();
+void lcd_noBlink();
+void lcd_blink();
+void lcd_noCursor();
+void lcd_cursor();
+void lcd_scrollDisplayLeft();
+void lcd_scrollDisplayRight();
+void lcd_printLeft();
+void lcd_printRight();
+void lcd_leftToRight();
+void lcd_rightToLeft();
+void lcd_shiftIncrement();
+void lcd_shiftDecrement();
+void lcd_noBacklight();
+void lcd_backlight();
+void lcd_autoscroll();
+void lcd_noAutoscroll(); 
+void lcd_createChar(uint8_t, uint8_t[]);
+void lcd_setCursor(uint8_t, uint8_t); 
+void lcd_command(uint8_t);
+void lcd_print(char* msg);
+void lcd_print_P(const char *msg);
+void lcd_write(uint8_t value);
 
 #endif
