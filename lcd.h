@@ -42,13 +42,22 @@
 #define LCD_5x10DOTS 0x04
 #define LCD_5x8DOTS 0x00
 
-// flags for backlight control
-#define LCD_BACKLIGHT 0x08
-#define LCD_NOBACKLIGHT 0x00
+#define LCD_BIT_RS        0
+#define LCD_BIT_RW        1
+#define LCD_BIT_EN        2
+#define LCD_BIT_BACKLIGHT 3
+#define LCD_BIT_DATA0     4
+#define LCD_BIT_DATA1     5 
+#define LCD_BIT_DATA2     6
+#define LCD_BIT_DATA3     7
 
-#define En 0b00000100  /* Enable bit */
-#define Rw 0b00000010  /* Read/Write bit */
-#define Rs 0b00000001  /* Register select bit */
+// flags for backlight control
+#define LCD_BACKLIGHT     _BV(LCD_BIT_BACKLIGHT)
+#define LCD_NOBACKLIGHT   0x00
+
+//#define En 0b00000100  /* Enable bit */
+//#define Rw 0b00000010  /* Read/Write bit */
+//#define Rs 0b00000001  /* Register select bit */
 
   void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t rows, uint8_t charsize); // = LCD_5x8DOTS 
   void lcd_clear();

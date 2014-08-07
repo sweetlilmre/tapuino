@@ -47,16 +47,14 @@ void expanderWrite(uint8_t _data);
 void pulseEnable(uint8_t _data);
 
 void lcd_write(uint8_t value) {
-	send(value, Rs);
+	send(value, _BV(LCD_BIT_RS));
 }
 
 /*********** mid level commands, for sending data/cmds */
 
-inline void command(uint8_t value) {
+void command(uint8_t value) {
 	send(value, 0);
 }
-
-
 
 void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize) {
   _addr = lcd_addr;
@@ -254,6 +252,19 @@ void send(uint8_t value, uint8_t mode) {
 }
 
 void write4bits(uint8_t value) {
+/*
+  uint8_t res = 0;
+  uint8_t tmp = value >> 4;
+  if (tmp & 1) res |= _BV(LCD_BIT_DATA0);
+  tmp >>= 1;
+  if (tmp & 1) res |= _BV(LCD_BIT_DATA1);
+  tmp >>= 1;
+  if (tmp & 1) res |= _BV(LCD_BIT_DATA2);
+  tmp >>= 1;
+  if (tmp & 1) res |= _BV(LCD_BIT_DATA3);
+  res <<= 4;
+  value = (value & 0x0f) | res;
+*/  
 	expanderWrite(value);
 	pulseEnable(value);
 }
@@ -265,9 +276,9 @@ void expanderWrite(uint8_t _data){
 }
 
 void pulseEnable(uint8_t _data){
-	expanderWrite(_data | En);	// En high
+	expanderWrite(_data | _BV(LCD_BIT_EN));	// En high
 	_delay_us(1);		// enable pulse must be >450ns
 	
-	expanderWrite(_data & ~En);	// En low
+	expanderWrite(_data & ~_BV(LCD_BIT_EN));	// En low
 	_delay_us(50);		// commands need > 37us to settle
 } 

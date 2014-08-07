@@ -9,7 +9,11 @@ extern prog_char S_MKDIR_FAILED[];
 extern prog_char S_CHDIR_FAILED[];
 extern prog_char S_NAME_PATTERN[];
 extern prog_char S_RECORDING[];
-
+extern prog_char S_SELECT_RECORD_MODE[];
+extern prog_char S_REC_MODE_MANUAL[];
+extern prog_char S_REC_MODE_AUTO[];
+extern prog_char S_ENTER_FILENAME[];
+extern prog_char S_FILENAME_CHARS[];
 
 extern prog_char S_STARTINGINIT[];
 extern prog_char S_INITI2COK[];

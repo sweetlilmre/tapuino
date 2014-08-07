@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <stdlib.h>
 
 #include "ff.h"
 #include "config.h"
@@ -6,6 +7,7 @@
 #include "memstrings.h"
 #include "fileutils.h"
 #include "tapuino.h"
+#include "lcd.h"
 #include "lcdutils.h"
 
 #define MODE_FIRST    0
@@ -13,6 +15,11 @@
 #define MODE_RECORD   1
 #define MODE_OPTIONS  2
 #define MODE_LAST     2
+
+#define REC_MODE_FIRST   0
+#define REC_MODE_MANUAL  0
+#define REC_MODE_AUTO    1
+#define REC_MODE_LAST    1
 
 int g_num_files = 0;
 int g_cur_file_index = 0;
@@ -96,7 +103,7 @@ void handle_play_mode(FILINFO* pfile_info) {
   }
 }
 
-void handle_mode_record(FILINFO* pfile_info) {
+void handle_record_mode_auto(FILINFO* pfile_info) {
   lcd_title_P(S_READY_RECORD);
   lcd_status_P(S_PRESS_START);
   
@@ -106,7 +113,7 @@ void handle_mode_record(FILINFO* pfile_info) {
     {
       case COMMAND_SELECT:
       {
-        record_file();
+        record_file(NULL);
         lcd_title_P(S_READY_RECORD);
         lcd_status_P(S_PRESS_START);
         g_cur_command = COMMAND_IDLE;
@@ -116,6 +123,80 @@ void handle_mode_record(FILINFO* pfile_info) {
       {
         // back to main menu
         return;
+      }
+    }
+  }
+}
+
+void handle_manual_filename(FILINFO* pfile_info) {
+  lcd_title_P(S_ENTER_FILENAME);
+  lcd_setCursor(0, 1);
+  lcd_blink();
+  
+}
+
+void handle_record_mode_select(FILINFO* pfile_info) {
+  uint8_t prev_mode = REC_MODE_LAST;
+  uint8_t cur_mode = REC_MODE_FIRST;
+
+  lcd_title_P(S_SELECT_RECORD_MODE);
+  
+  while(1)
+  {
+    if (prev_mode != cur_mode) {
+      switch (cur_mode)
+      {
+        case REC_MODE_MANUAL:
+          lcd_status_P(S_REC_MODE_MANUAL);
+        break;
+        case REC_MODE_AUTO:
+          lcd_status_P(S_REC_MODE_AUTO);
+        break;
+      }
+      prev_mode = cur_mode;
+    }
+    
+    switch(g_cur_command)
+    {
+      case COMMAND_SELECT:
+      {
+        switch(cur_mode)
+        {
+          case REC_MODE_AUTO:
+            handle_record_mode_auto(pfile_info);
+          break;
+          case REC_MODE_MANUAL:
+            handle_manual_filename(pfile_info);
+            handle_record_mode_auto(pfile_info);
+          break;
+        }
+        g_cur_command = COMMAND_IDLE;
+        lcd_title_P(S_SELECT_RECORD_MODE);
+      }
+      case COMMAND_ABORT:
+      {
+        g_cur_command = COMMAND_IDLE;
+        return;
+      }
+      case COMMAND_NEXT:
+      {
+        if (cur_mode == MODE_LAST) {
+          cur_mode = MODE_FIRST;
+        } else {
+          cur_mode++;
+        }
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      case COMMAND_PREVIOUS:
+      {
+        if (cur_mode == MODE_FIRST) {
+          cur_mode = MODE_LAST;
+        } else {
+          cur_mode--;
+        }
+        g_cur_command = COMMAND_IDLE;
+        break;
       }
     }
   }
@@ -197,7 +278,7 @@ void main_menu(FILINFO* pfile_info) {
         handle_play_mode(pfile_info);
       break;
       case MODE_RECORD:
-        handle_mode_record(pfile_info);
+        handle_record_mode_select(pfile_info);
       break;
       case MODE_OPTIONS:
         handle_mode_options();

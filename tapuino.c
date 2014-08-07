@@ -306,7 +306,7 @@ int play_file(FILINFO* pfile_info)
 }
 
 
-void record_file() {
+void record_file(char* pfile_name) {
   FRESULT res;
   UINT br;
   uint32_t tmp = 0;
@@ -332,18 +332,23 @@ void record_file() {
     return;
   }
   
-  // find a filename
-  br = 0;
-  while (1) {
-    sprintf_P((char*)g_fat_buffer, S_NAME_PATTERN, br);
-    res = f_open(&g_fil, (char*)g_fat_buffer, FA_READ);
-    if (res != FR_OK) {
-      break;
+  if (pfile_name == NULL) {
+    // generate a filename
+    br = 0;
+    while (1) {
+      sprintf_P((char*)g_fat_buffer, S_NAME_PATTERN, br);
+      res = f_open(&g_fil, (char*)g_fat_buffer, FA_READ);
+      if (res != FR_OK) {
+        break;
+      }
+      f_close(&g_fil);
+      br++;
     }
-    f_close(&g_fil);
-    br++;
+    res = f_open(&g_fil, (char*)g_fat_buffer, FA_CREATE_NEW | FA_WRITE);
+  } else {
+    res = f_open(&g_fil, pfile_name, FA_CREATE_NEW | FA_WRITE);
   }
-  res = f_open(&g_fil, (char*)g_fat_buffer, FA_CREATE_NEW | FA_WRITE);
+
   if (res != FR_OK) {
     lcd_status_P(S_OPEN_FAILED);
     busy_spinner();
