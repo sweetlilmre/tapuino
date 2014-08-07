@@ -34,8 +34,7 @@ void handle_play_mode(FILINFO* pfile_info) {
 
   display_filename(pfile_info);
   
-  while(1)
-  {
+  while (1) {
     switch(g_cur_command)
     {
       case COMMAND_SELECT:
@@ -107,8 +106,7 @@ void handle_record_mode_auto(FILINFO* pfile_info) {
   lcd_title_P(S_READY_RECORD);
   lcd_status_P(S_PRESS_START);
   
-  while(1)
-  {
+  while (1) {
     switch(g_cur_command)
     {
       case COMMAND_SELECT:
@@ -129,9 +127,73 @@ void handle_record_mode_auto(FILINFO* pfile_info) {
 }
 
 void handle_manual_filename(FILINFO* pfile_info) {
+  uint8_t cur_char_pos = 0;
+  uint8_t cursor_pos = 0;
+  uint8_t max_chars = strlen_P(S_FILENAME_CHARS);
+  uint8_t cur_char = 0;
   lcd_title_P(S_ENTER_FILENAME);
+  lcd_status(S_MAX_BLANK_LINE);
+  lcd_cursor();
   lcd_setCursor(0, 1);
-  lcd_blink();
+  
+  // start with a nicely terminated string!
+  pfile_info->lfname[0] = 0;
+  
+  while (1) {
+    switch(g_cur_command)
+    {
+      case COMMAND_SELECT:
+      {
+        if (cursor_pos < MAX_LCD_LINE_LEN) {
+          cursor_pos++;
+          lcd_setCursor(cursor_pos, 1);
+          cur_char_pos = 0;
+        }
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      case COMMAND_ABORT:
+      {
+        if (cursor_pos != 0) {
+          pfile_info->lfname[cursor_pos] = 0;
+          lcd_setCursor(cursor_pos, 1);
+          lcd_write(' ');
+          cursor_pos--;
+          lcd_setCursor(cursor_pos, 1);
+          cur_char_pos = 0;
+          cur_char = pfile_info->lfname[cursor_pos];
+          while (pgm_read_byte(S_FILENAME_CHARS + cur_char_pos) != cur_char) {
+            cur_char_pos++;
+          }
+        }
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      case COMMAND_NEXT:
+      {
+        cur_char_pos = (cur_char_pos + 1) % max_chars;
+        cur_char = pgm_read_byte(S_FILENAME_CHARS + cur_char_pos);
+        lcd_write(cur_char);
+        lcd_setCursor(cursor_pos, 1);
+        pfile_info->lfname[cursor_pos] = cur_char;
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+      case COMMAND_PREVIOUS:
+      {
+        if (cur_char_pos == 0) {
+          cur_char_pos = max_chars;
+        }
+        cur_char_pos--;
+        cur_char = pgm_read_byte(S_FILENAME_CHARS + cur_char_pos);
+        lcd_write(cur_char);
+        lcd_setCursor(cursor_pos, 1);
+        pfile_info->lfname[cursor_pos] = cur_char;
+        g_cur_command = COMMAND_IDLE;
+        break;
+      }
+    }    
+  }
   
 }
 
@@ -141,8 +203,7 @@ void handle_record_mode_select(FILINFO* pfile_info) {
 
   lcd_title_P(S_SELECT_RECORD_MODE);
   
-  while(1)
-  {
+  while (1) {
     if (prev_mode != cur_mode) {
       switch (cur_mode)
       {
@@ -160,6 +221,7 @@ void handle_record_mode_select(FILINFO* pfile_info) {
     {
       case COMMAND_SELECT:
       {
+        g_cur_command = COMMAND_IDLE;
         switch(cur_mode)
         {
           case REC_MODE_AUTO:
@@ -170,7 +232,6 @@ void handle_record_mode_select(FILINFO* pfile_info) {
             handle_record_mode_auto(pfile_info);
           break;
         }
-        g_cur_command = COMMAND_IDLE;
         lcd_title_P(S_SELECT_RECORD_MODE);
       }
       case COMMAND_ABORT:
@@ -180,8 +241,8 @@ void handle_record_mode_select(FILINFO* pfile_info) {
       }
       case COMMAND_NEXT:
       {
-        if (cur_mode == MODE_LAST) {
-          cur_mode = MODE_FIRST;
+        if (cur_mode == REC_MODE_LAST) {
+          cur_mode = REC_MODE_FIRST;
         } else {
           cur_mode++;
         }
@@ -190,8 +251,8 @@ void handle_record_mode_select(FILINFO* pfile_info) {
       }
       case COMMAND_PREVIOUS:
       {
-        if (cur_mode == MODE_FIRST) {
-          cur_mode = MODE_LAST;
+        if (cur_mode == REC_MODE_FIRST) {
+          cur_mode = REC_MODE_LAST;
         } else {
           cur_mode--;
         }
@@ -212,8 +273,7 @@ uint8_t handle_select_mode() {
 
   lcd_title_P(S_SELECT_MODE);
   
-  while(1)
-  {
+  while (1) {
     if (prev_mode != cur_mode) {
       switch (cur_mode)
       {
