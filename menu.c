@@ -170,6 +170,13 @@ void handle_manual_filename(FILINFO* pfile_info) {
         g_cur_command = COMMAND_IDLE;
         break;
       }
+      case COMMAND_ABORT_LONG:
+      {
+        lcd_title_P(S_OPERATION_ABORTED);
+        lcd_busy_spinner();
+        // exit to previous menu
+        return;
+      }
       case COMMAND_NEXT:
       {
         cur_char_pos = (cur_char_pos + 1) % max_chars;

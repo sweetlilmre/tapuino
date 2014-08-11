@@ -199,14 +199,6 @@ void signal_timer_stop() {
   TIMSK1 = 0;
 }
 
-void busy_spinner() {
-  int i;
-  for (i = 0; i < 100; i++) {
-    lcd_spinner(0, 100);
-    _delay_ms(20);
-  }
-}
-
 int play_file(FILINFO* pfile_info)
 {
   FRESULT res;
@@ -300,7 +292,7 @@ int play_file(FILINFO* pfile_info)
   }
 
   // end of load UI indicator
-  busy_spinner();
+  lcd_busy_spinner();
 
   return 1;
 }
@@ -321,14 +313,14 @@ void record_file(char* pfile_name) {
     res = f_mkdir((char*)g_fat_buffer);
     if (res != FR_OK || f_opendir(&g_dir, (char*)g_fat_buffer) != FR_OK) {
       lcd_status_P(S_MKDIR_FAILED);
-      busy_spinner();
+      lcd_busy_spinner();
       return;
     }
   }
   // change to the recording dir
   if (f_chdir((char*)g_fat_buffer) != FR_OK) {
     lcd_status_P(S_CHDIR_FAILED);
-    busy_spinner();
+    lcd_busy_spinner();
     return;
   }
   
@@ -351,7 +343,7 @@ void record_file(char* pfile_name) {
 
   if (res != FR_OK) {
     lcd_status_P(S_OPEN_FAILED);
-    busy_spinner();
+    lcd_busy_spinner();
     return;
   }
   
@@ -436,7 +428,7 @@ void record_file(char* pfile_name) {
   }
 
   // end of load UI indicator
-  busy_spinner();
+  lcd_busy_spinner();
 }
 
 

@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <util/delay.h>
 #include "ff.h"
 #include "config.h"
 #include "lcd.h"
@@ -76,7 +77,15 @@ void display_filename(FILINFO* pfile_info) {
   g_ticker_enabled = strlen(ticker_string) > (MAX_LCD_LINE_LEN - 1);
 }
 
-inline void lcd_spinner(int32_t cur_tick, int perc) {
+void lcd_busy_spinner() {
+  int i;
+  for (i = 0; i < 100; i++) {
+    lcd_spinner(0, 100);
+    _delay_ms(20);
+  }
+}
+
+void lcd_spinner(int32_t cur_tick, int perc) {
   static uint8_t indicators[] = {'|', '/', '-', 1};
   static uint8_t pos = 0;
   static int32_t last_tick = 0;

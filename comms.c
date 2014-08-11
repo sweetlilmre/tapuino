@@ -5,8 +5,8 @@
 
 volatile uint8_t g_cur_command = COMMAND_IDLE;
 
-//Debounce
-#define REPEAT_MASK     (_BV(KEY_PREV_PIN) | _BV(KEY_NEXT_PIN))   // repeat: key1, key2 
+ // repeat needed on all keys for short/long on select/abort and repeat on prev/next
+#define REPEAT_MASK     (_BV(KEY_SELECT_PIN) | _BV(KEY_ABORT_PIN) | _BV(KEY_PREV_PIN) | _BV(KEY_NEXT_PIN)) 
 volatile unsigned char  key_press = 0;
 volatile unsigned char  key_state = 0;
 volatile unsigned char  key_rpt = 0;
@@ -67,6 +67,14 @@ void player_handleInputKeys() {
   
   if (get_key_short(_BV(KEY_ABORT_PIN))) {
     g_cur_command = COMMAND_ABORT;
+  }
+  
+  if (get_key_long(_BV(KEY_SELECT_PIN))) {
+    g_cur_command = COMMAND_SELECT_LONG;
+  }
+  
+  if (get_key_long(_BV(KEY_ABORT_PIN))) {
+    g_cur_command = COMMAND_ABORT_LONG;
   }
   
   if (get_key_press(_BV(KEY_PREV_PIN)) || get_key_rpt(_BV(KEY_PREV_PIN))) {
