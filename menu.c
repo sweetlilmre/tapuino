@@ -275,6 +275,13 @@ void handle_record_mode_select(FILINFO* pfile_info) {
       }
       case COMMAND_ABORT:
       {
+        // reset to the root after a record operation
+        f_chdir("/");
+        // refresh the file list to avoid blank entries bug
+        if ((g_num_files = get_num_files(pfile_info)) == 0) {
+          lcd_title_P(S_NO_FILES_FOUND);
+          return;
+        }
         return;
       }
       case COMMAND_NEXT:

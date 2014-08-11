@@ -461,7 +461,7 @@ int tapuino_hardware_setup(void)
   disk_timer_setup();
   
   serial_init();
-  serial_println_P(S_STARTINGINIT);
+  serial_println_P(S_INIT);
   sprintf((char*)g_fat_buffer, "%d", free_ram());
   serial_println((char*)g_fat_buffer);
   lcd_setup();
@@ -478,8 +478,7 @@ int tapuino_hardware_setup(void)
   
   if (res == FR_OK) {
     SPI_Speed_Fast();
-    strcpy_P((char*)g_fat_buffer, S_DEFAULT_DIR);
-    res = f_opendir(&g_dir, (char*)g_fat_buffer);
+    res = f_opendir(&g_dir, "/");
   } else {
     lcd_title_P(S_INIT_FAILED);
   }

@@ -1,8 +1,6 @@
 #include <avr/pgmspace.h>
 #include "memstrings.h"
 
-
-prog_char S_DEFAULT_DIR[] PROGMEM =  "/";
 prog_char S_DEFAULT_RECORD_DIR[] PROGMEM =  "/recorded";
 prog_char S_MKDIR_FAILED[] PROGMEM = "MKDIR failed!";
 prog_char S_CHDIR_FAILED[] PROGMEM = "CHDIR failed!";
@@ -14,8 +12,7 @@ prog_char S_REC_MODE_AUTO[] PROGMEM = "Auto name";
 prog_char S_ENTER_FILENAME[] PROGMEM = "Enter file name";
 prog_char S_FILENAME_CHARS[] PROGMEM = " abcdefghijklmnopqrstuvwxyz0123456789_-";
 
-prog_char S_STARTINGINIT[] PROGMEM = "Starting init sequence";
-prog_char S_INITI2COK[] PROGMEM = "I2C init OK";
+prog_char S_INITI2COK[] PROGMEM = "I2C OK";
 prog_char S_INIT[] PROGMEM = "Init...";
 prog_char S_INIT_FAILED[] PROGMEM = "Init failed!";
 prog_char S_INIT_OK[] PROGMEM = "Init OK.";

@@ -3,7 +3,6 @@
 
 #include <avr/pgmspace.h>
 
-extern prog_char S_DEFAULT_DIR[];
 extern prog_char S_DEFAULT_RECORD_DIR[];
 extern prog_char S_MKDIR_FAILED[];
 extern prog_char S_CHDIR_FAILED[];
