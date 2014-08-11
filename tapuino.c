@@ -318,17 +318,18 @@ void record_file(char* pfile_name) {
       f_close(&g_fil);
       br++;
     }
-    res = f_open(&g_fil, (char*)g_fat_buffer, FA_CREATE_NEW | FA_WRITE);
-  } else {
-    res = f_open(&g_fil, pfile_name, FA_CREATE_NEW | FA_WRITE);
+    pfile_name = (char*)g_fat_buffer;
   }
+  
+  res = f_open(&g_fil, pfile_name, FA_CREATE_NEW | FA_WRITE);
 
   if (res != FR_OK) {
-    serial_println(pfile_name);
     lcd_status_P(S_OPEN_FAILED);
     lcd_busy_spinner();
     return;
   }
+  lcd_title_P(S_RECORDING);
+  lcd_status(pfile_name);
   
   // write TAP header
   memset (g_fat_buffer, 0, sizeof(g_fat_buffer));   // clear it all out
@@ -344,8 +345,6 @@ void record_file(char* pfile_name) {
   // set flag to indicate the start of recording
   g_signal_2nd_half = 0;
   
-  lcd_title_P(S_RECORDING);
-  lcd_status_P(S_MAX_BLANK_LINE);
   SENSE_ON();
   while (MOTOR_IS_OFF()) {
     //input_callback();
