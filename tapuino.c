@@ -13,7 +13,7 @@
 #include "ff.h"
 #include "mmc.h"
 #include "diskio.h"
-//#include "serial.h"
+#include "serial.h"
 #include "comms.h"
 #include "lcd.h"
 #include "lcdutils.h"
@@ -306,24 +306,6 @@ void record_file(char* pfile_name) {
   g_tap_file_pos = 0;
   g_tap_file_len = 0;
 
-  // attempt to open the recording dir
-  strcpy_P((char*)g_fat_buffer, S_DEFAULT_RECORD_DIR);
-  res = f_opendir(&g_dir, (char*)g_fat_buffer);
-  if (res != FR_OK) { // try to make it if its not there
-    res = f_mkdir((char*)g_fat_buffer);
-    if (res != FR_OK || f_opendir(&g_dir, (char*)g_fat_buffer) != FR_OK) {
-      lcd_status_P(S_MKDIR_FAILED);
-      lcd_busy_spinner();
-      return;
-    }
-  }
-  // change to the recording dir
-  if (f_chdir((char*)g_fat_buffer) != FR_OK) {
-    lcd_status_P(S_CHDIR_FAILED);
-    lcd_busy_spinner();
-    return;
-  }
-  
   if (pfile_name == NULL) {
     // generate a filename
     br = 0;
@@ -342,6 +324,7 @@ void record_file(char* pfile_name) {
   }
 
   if (res != FR_OK) {
+    serial_println(pfile_name);
     lcd_status_P(S_OPEN_FAILED);
     lcd_busy_spinner();
     return;
@@ -478,12 +461,12 @@ int tapuino_hardware_setup(void)
   
   disk_timer_setup();
   
-//  serial_init();
-//  serial_println_P(S_STARTINGINIT);
-//  sprintf((char*)g_fat_buffer, "%d", free_ram());
-//  serial_println((char*)g_fat_buffer);
+  serial_init();
+  serial_println_P(S_STARTINGINIT);
+  sprintf((char*)g_fat_buffer, "%d", free_ram());
+  serial_println((char*)g_fat_buffer);
   lcd_setup();
-//  serial_println_P(S_INITI2COK);
+  serial_println_P(S_INITI2COK);
   lcd_title_P(S_INIT);
   
   // something (possibly) dodgy in the bootloader causes a fail on cold boot.

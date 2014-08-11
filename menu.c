@@ -218,10 +218,29 @@ uint8_t handle_manual_filename(FILINFO* pfile_info) {
 }
 
 void handle_record_mode_select(FILINFO* pfile_info) {
+  FRESULT res;
   uint8_t prev_mode = REC_MODE_LAST;
   uint8_t cur_mode = REC_MODE_FIRST;
 
   lcd_title_P(S_SELECT_RECORD_MODE);
+
+  // attempt to open the recording dir
+  strcpy_P((char*)g_fat_buffer, S_DEFAULT_RECORD_DIR);
+  res = f_opendir(&g_dir, (char*)g_fat_buffer);
+  if (res != FR_OK) { // try to make it if its not there
+    res = f_mkdir((char*)g_fat_buffer);
+    if (res != FR_OK || f_opendir(&g_dir, (char*)g_fat_buffer) != FR_OK) {
+      lcd_status_P(S_MKDIR_FAILED);
+      lcd_busy_spinner();
+      return;
+    }
+  }
+  // change to the recording dir
+  if (f_chdir((char*)g_fat_buffer) != FR_OK) {
+    lcd_status_P(S_CHDIR_FAILED);
+    lcd_busy_spinner();
+    return;
+  }
   
   while (1) {
     if (prev_mode != cur_mode) {
