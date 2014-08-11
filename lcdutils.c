@@ -16,7 +16,6 @@ uint8_t g_ticker_enabled  = 0;
 uint8_t g_ticker_index = 0;
 uint8_t g_ticker_hold = TICKER_HOLD;
 uint8_t g_ticker_end_hold = TICKER_HOLD;
-FILINFO* g_ticker_file_info = NULL;
 
 uint8_t backslashChar[8] = {
     0b00000,
@@ -29,7 +28,7 @@ uint8_t backslashChar[8] = {
     0b00000
 };
 
-void filename_ticker(uint32_t cur_tick) {
+void filename_ticker(FILINFO* pfile_info, uint32_t cur_tick) {
   static uint32_t last_tick = 0;
   char* ticker_string;
 
@@ -45,7 +44,7 @@ void filename_ticker(uint32_t cur_tick) {
     }
 
     g_ticker_index++;
-    ticker_string = g_ticker_file_info->lfname[0] ? g_ticker_file_info->lfname : g_ticker_file_info->fname;
+    ticker_string = pfile_info->lfname[0] ? pfile_info->lfname : pfile_info->fname;
     if ((strlen(ticker_string) - g_ticker_index) < (MAX_LCD_LINE_LEN - 1)) {
       if (g_ticker_end_hold) {
         g_ticker_index--;
@@ -57,7 +56,7 @@ void filename_ticker(uint32_t cur_tick) {
       g_ticker_hold = g_ticker_end_hold = TICKER_HOLD;
     }
     lcd_status(&ticker_string[g_ticker_index]);
-    if (g_ticker_file_info->fattrib & AM_DIR) {
+    if (pfile_info->fattrib & AM_DIR) {
       lcd_show_dir();
     }  
   }
@@ -66,10 +65,9 @@ void filename_ticker(uint32_t cur_tick) {
 void display_filename(FILINFO* pfile_info) {
   char* ticker_string;
   
-  g_ticker_file_info = pfile_info;
-  ticker_string = g_ticker_file_info->lfname[0] ? g_ticker_file_info->lfname : g_ticker_file_info->fname;
+  ticker_string = pfile_info->lfname[0] ? pfile_info->lfname : pfile_info->fname;
   lcd_status(ticker_string);
-  if (g_ticker_file_info->fattrib & AM_DIR) {
+  if (pfile_info->fattrib & AM_DIR) {
     lcd_show_dir();
   }  
   g_ticker_index = 0;
@@ -77,33 +75,39 @@ void display_filename(FILINFO* pfile_info) {
   g_ticker_enabled = strlen(ticker_string) > (MAX_LCD_LINE_LEN - 1);
 }
 
-void lcd_busy_spinner() {
-  int i;
-  for (i = 0; i < 100; i++) {
-    lcd_spinner(0, 100);
-    _delay_ms(20);
-  }
-}
-
-void lcd_spinner(int32_t cur_tick, int perc) {
+void lcd_spinner_internal(uint32_t cur_tick, int8_t perc, uint16_t rate) {
   static uint8_t indicators[] = {'|', '/', '-', 1};
   static uint8_t pos = 0;
-  static int32_t last_tick = 0;
-  if (cur_tick - last_tick < (SPINNER_RATE / 10)) {
+  static uint32_t last_tick = 0;
+  if (cur_tick - last_tick < (rate / 10)) {
     return;
   }
   
   last_tick = cur_tick;
   lcd_setCursor(MAX_LCD_LINE_LEN - 7, 0);
   if (perc < 0) {
-    sprintf(g_char_buffer, "     %c%c", MOTOR_IS_OFF() ? 'm' : 'M', indicators[pos++]);
+    strncpy_P(g_char_buffer, S_MAX_BLANK_LINE, 7);
   } else {
-    sprintf(g_char_buffer, "%3d%% %c%c", perc, MOTOR_IS_OFF() ? 'm' : 'M', indicators[pos++]);
+    sprintf(g_char_buffer, "%3d%%   ", perc);
   }
+  g_char_buffer[5] = MOTOR_IS_OFF() ? 'm' : 'M';
+  g_char_buffer[6] = indicators[pos++];
   lcd_print(g_char_buffer);
 
   if (pos > 3) {
     pos = 0;
+  }
+}
+
+void lcd_spinner(uint32_t cur_tick, int8_t perc) {
+  lcd_spinner_internal(cur_tick, perc, SPINNER_RATE);
+}
+
+void lcd_busy_spinner() {
+  uint8_t i;
+  for (i = 0; i < 100; i++) {
+    lcd_spinner_internal(i, 100, 0);
+    _delay_ms(20);
   }
 }
 

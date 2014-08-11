@@ -12,7 +12,7 @@
 #define LCD_BIT_DATA1       5    // 4 bit data, bit 1 
 #define LCD_BIT_DATA2       6    // 4 bit data, bit 2
 #define LCD_BIT_DATA3       7    // 4 bit data, bit 3
-// dimension config
+// LCD dimensions config
 #define LCD_NUM_LINES       2    // number of display lines on the LCD
 #define MAX_LCD_LINE_LEN    16   // max number of characters on a line
 
@@ -21,7 +21,7 @@
 #define TICKER_HOLD         5    // ticker begin and end hold time in SPINNER_RATE units
 #define KEY_REPEAT_START    500  // milliseconds, granularity 10ms
 #define KEY_REPEAT_NEXT     300  // milliseconds, granularity 10ms
-#define REC_FINALIZE_TIME   5000 // milliseconds, granularity 10ms
+#define REC_FINALIZE_TIME   2000 // milliseconds, granularity 10ms
 
 // TWI for pullups
 #define TWI_PORT            PORTC

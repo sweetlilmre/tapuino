@@ -1,5 +1,6 @@
 #include <inttypes.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "ff.h"
 #include "config.h"
@@ -24,6 +25,19 @@
 int g_num_files = 0;
 int g_cur_file_index = 0;
 
+uint8_t get_cur_command() {
+// this order of operations is very important
+// first get an 'atomic' read of g_cur_command into a local
+  uint8_t cur_command = g_cur_command;
+// then compare the _local_ against a non-IDLE command
+  if (cur_command != COMMAND_IDLE) {
+    // and clear the global i.e. only if the global was non-idle at the time of read
+    // this prevents clearing the global as a key is pressed and missing it
+    g_cur_command = COMMAND_IDLE;
+  }
+  return cur_command;
+}
+
 void handle_play_mode(FILINFO* pfile_info) {
   lcd_title_P(S_SELECT_FILE);
   if (!get_file_at_index(pfile_info, g_cur_file_index)) {
@@ -35,7 +49,7 @@ void handle_play_mode(FILINFO* pfile_info) {
   display_filename(pfile_info);
   
   while (1) {
-    switch(g_cur_command)
+    switch(get_cur_command())
     {
       case COMMAND_SELECT:
       {
@@ -56,7 +70,6 @@ void handle_play_mode(FILINFO* pfile_info) {
           get_file_at_index(pfile_info, g_cur_file_index);
           display_filename(pfile_info);
         }
-        g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_ABORT:
@@ -74,7 +87,6 @@ void handle_play_mode(FILINFO* pfile_info) {
           // back to main menu
           return;
         }
-        g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_NEXT:
@@ -84,7 +96,6 @@ void handle_play_mode(FILINFO* pfile_info) {
         }
         get_file_at_index(pfile_info, g_cur_file_index);
         display_filename(pfile_info);
-        g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_PREVIOUS:
@@ -94,27 +105,25 @@ void handle_play_mode(FILINFO* pfile_info) {
         }
         get_file_at_index(pfile_info, g_cur_file_index);
         display_filename(pfile_info);
-        g_cur_command = COMMAND_IDLE;
         break;
       }
     }
-    filename_ticker(get_timer_tick());
+    filename_ticker(pfile_info, get_timer_tick());
   }
 }
 
-void handle_record_mode_auto(FILINFO* pfile_info) {
+void handle_record_mode_ready(char* pfile_name) {
   lcd_title_P(S_READY_RECORD);
   lcd_status_P(S_PRESS_START);
   
   while (1) {
-    switch(g_cur_command)
+    switch(get_cur_command())
     {
       case COMMAND_SELECT:
       {
-        record_file(NULL);
+        record_file(pfile_name);
         lcd_title_P(S_READY_RECORD);
         lcd_status_P(S_PRESS_START);
-        g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_ABORT:
@@ -126,7 +135,7 @@ void handle_record_mode_auto(FILINFO* pfile_info) {
   }
 }
 
-void handle_manual_filename(FILINFO* pfile_info) {
+uint8_t handle_manual_filename(FILINFO* pfile_info) {
   uint8_t cur_char_pos = 0;
   uint8_t cursor_pos = 0;
   uint8_t max_chars = strlen_P(S_FILENAME_CHARS);
@@ -134,24 +143,30 @@ void handle_manual_filename(FILINFO* pfile_info) {
   lcd_title_P(S_ENTER_FILENAME);
   lcd_status(S_MAX_BLANK_LINE);
   lcd_cursor();
-  lcd_blink();
   lcd_setCursor(0, 1);
   
   // start with a nicely terminated string!
-  pfile_info->lfname[0] = 0;
+  memset(pfile_info->lfname, 0, pfile_info->lfsize);
   
   while (1) {
-    switch(g_cur_command)
+    switch(get_cur_command())
     {
       case COMMAND_SELECT:
       {
-        if (cursor_pos < MAX_LCD_LINE_LEN) {
+        if (cursor_pos < (MAX_LCD_LINE_LEN - 1)) {
+          cur_char = pgm_read_byte(S_FILENAME_CHARS + cur_char_pos);
+          pfile_info->lfname[cursor_pos] = cur_char;        
           cursor_pos++;
           lcd_setCursor(cursor_pos, 1);
           cur_char_pos = 0;
         }
-        g_cur_command = COMMAND_IDLE;
         break;
+      }
+      case COMMAND_SELECT_LONG:
+      {
+        strcat(pfile_info->lfname, ".tap");
+        // exit to previous menu, with accept
+        return 1;
       }
       case COMMAND_ABORT:
       {
@@ -167,15 +182,14 @@ void handle_manual_filename(FILINFO* pfile_info) {
             cur_char_pos++;
           }
         }
-        g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_ABORT_LONG:
       {
         lcd_title_P(S_OPERATION_ABORTED);
         lcd_busy_spinner();
-        // exit to previous menu
-        return;
+        // exit to previous menu, with cancel
+        return 0;
       }
       case COMMAND_NEXT:
       {
@@ -184,7 +198,6 @@ void handle_manual_filename(FILINFO* pfile_info) {
         lcd_write(cur_char);
         lcd_setCursor(cursor_pos, 1);
         pfile_info->lfname[cursor_pos] = cur_char;
-        g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_PREVIOUS:
@@ -197,7 +210,6 @@ void handle_manual_filename(FILINFO* pfile_info) {
         lcd_write(cur_char);
         lcd_setCursor(cursor_pos, 1);
         pfile_info->lfname[cursor_pos] = cur_char;
-        g_cur_command = COMMAND_IDLE;
         break;
       }
     }    
@@ -225,26 +237,25 @@ void handle_record_mode_select(FILINFO* pfile_info) {
       prev_mode = cur_mode;
     }
     
-    switch(g_cur_command)
+    switch(get_cur_command())
     {
       case COMMAND_SELECT:
       {
-        g_cur_command = COMMAND_IDLE;
         switch(cur_mode)
         {
           case REC_MODE_AUTO:
-            handle_record_mode_auto(pfile_info);
+            handle_record_mode_ready(NULL);
           break;
           case REC_MODE_MANUAL:
-            handle_manual_filename(pfile_info);
-            handle_record_mode_auto(pfile_info);
+            if (handle_manual_filename(pfile_info)) {
+              handle_record_mode_ready(pfile_info->lfname);
+            }
           break;
         }
         lcd_title_P(S_SELECT_RECORD_MODE);
       }
       case COMMAND_ABORT:
       {
-        g_cur_command = COMMAND_IDLE;
         return;
       }
       case COMMAND_NEXT:
@@ -254,7 +265,6 @@ void handle_record_mode_select(FILINFO* pfile_info) {
         } else {
           cur_mode++;
         }
-        g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_PREVIOUS:
@@ -264,7 +274,6 @@ void handle_record_mode_select(FILINFO* pfile_info) {
         } else {
           cur_mode--;
         }
-        g_cur_command = COMMAND_IDLE;
         break;
       }
     }
@@ -298,16 +307,14 @@ uint8_t handle_select_mode() {
       prev_mode = cur_mode;
     }
     
-    switch(g_cur_command)
+    switch(get_cur_command())
     {
       case COMMAND_SELECT:
       {
-        g_cur_command = COMMAND_IDLE;
         return cur_mode;
       }
       case COMMAND_ABORT:
       {
-        g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_NEXT:
@@ -317,7 +324,6 @@ uint8_t handle_select_mode() {
         } else {
           cur_mode++;
         }
-        g_cur_command = COMMAND_IDLE;
         break;
       }
       case COMMAND_PREVIOUS:
@@ -327,7 +333,6 @@ uint8_t handle_select_mode() {
         } else {
           cur_mode--;
         }
-        g_cur_command = COMMAND_IDLE;
         break;
       }
     }

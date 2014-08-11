@@ -13,7 +13,7 @@
 #include "ff.h"
 #include "mmc.h"
 #include "diskio.h"
-#include "serial.h"
+//#include "serial.h"
 #include "comms.h"
 #include "lcd.h"
 #include "lcdutils.h"
@@ -478,12 +478,12 @@ int tapuino_hardware_setup(void)
   
   disk_timer_setup();
   
-  serial_init();
-  serial_println_P(S_STARTINGINIT);
-  sprintf((char*)g_fat_buffer, "%d", free_ram());
-  serial_println((char*)g_fat_buffer);
+//  serial_init();
+//  serial_println_P(S_STARTINGINIT);
+//  sprintf((char*)g_fat_buffer, "%d", free_ram());
+//  serial_println((char*)g_fat_buffer);
   lcd_setup();
-  serial_println_P(S_INITI2COK);
+//  serial_println_P(S_INITI2COK);
   lcd_title_P(S_INIT);
   
   // something (possibly) dodgy in the bootloader causes a fail on cold boot.
