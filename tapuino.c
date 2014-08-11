@@ -422,7 +422,8 @@ void record_file(char* pfile_name) {
   }
 
   signal_timer_stop();
-  
+  SENSE_OFF();
+ 
   // write in the length of the TAP file
   f_lseek(&g_fil, 0x0010);
   f_write(&g_fil, (void*) &g_tap_file_pos, 4, &br);

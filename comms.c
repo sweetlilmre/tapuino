@@ -38,12 +38,34 @@ unsigned char get_key_rpt( unsigned char key_mask ) {
   return key_mask; 
 } 
 
+/*--------------------------------------------------------------------------
+  FUNC: 8/1/11 - Used to read debounced button released after a short press
+  PARAMS: A keymask corresponding to the pin for the button you with to poll
+  RETURNS: A keymask where any high bits represent a quick press and release
+--------------------------------------------------------------------------*/
+unsigned char get_key_short( unsigned char key_mask ) 
+{ 
+  //cli();         // read key state and key press atomic ! 
+  return get_key_press( ~key_state & key_mask ); 
+} 
+
+/*--------------------------------------------------------------------------
+  FUNC: 8/1/11 - Used to read debounced button held for REPEAT_START amount
+	of time.
+  PARAMS: A keymask corresponding to the pin for the button you with to poll
+  RETURNS: A keymask where any high bits represent a long button press
+--------------------------------------------------------------------------*/
+unsigned char get_key_long( unsigned char key_mask ) 
+{ 
+  return get_key_press( get_key_rpt( key_mask )); 
+}
+
 void player_handleInputKeys() {
-  if (get_key_press(_BV(KEY_SELECT_PIN))) {
+  if (get_key_short(_BV(KEY_SELECT_PIN))) {
     g_cur_command = COMMAND_SELECT;
   }
   
-  if (get_key_press(_BV(KEY_ABORT_PIN))) {
+  if (get_key_short(_BV(KEY_ABORT_PIN))) {
     g_cur_command = COMMAND_ABORT;
   }
   

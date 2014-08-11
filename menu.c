@@ -134,6 +134,7 @@ void handle_manual_filename(FILINFO* pfile_info) {
   lcd_title_P(S_ENTER_FILENAME);
   lcd_status(S_MAX_BLANK_LINE);
   lcd_cursor();
+  lcd_blink();
   lcd_setCursor(0, 1);
   
   // start with a nicely terminated string!
