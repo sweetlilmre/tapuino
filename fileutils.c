@@ -1,5 +1,5 @@
 #include <inttypes.h>
-
+#include <string.h>
 #include "ff.h"
 #include "config.h"
 #include "fileutils.h"
@@ -17,13 +17,34 @@ uint8_t g_fat_buffer[FAT_BUF_SIZE];
 /* User Provided RTC Function called by FatFs module       */
 
 DWORD get_fattime (void) {
-	/* Returns current time packed into a DWORD variable */
-	return	  ((DWORD)(2014 - 1980) << 25)	/* Year 2013 */
-			| ((DWORD)6 << 21)				/* Month 7 */
-			| ((DWORD)1 << 16)				/* Mday 28 */
-			| ((DWORD)0 << 11)				/* Hour 0 */
-			| ((DWORD)0 << 5)				/* Min 0 */
-			| ((DWORD)0 >> 1);				/* Sec 0 */
+  /* Returns current time packed into a DWORD variable */
+  return ((DWORD)(2014 - 1980) << 25) /* Year 2014 */
+            | ((DWORD)6 << 21)        /* Month 6 */
+            | ((DWORD)1 << 16)        /* Mday 1 */
+            | ((DWORD)0 << 11)        /* Hour 0 */
+            | ((DWORD)0 << 5)         /* Min 0 */
+            | ((DWORD)0 >> 1);        /* Sec 0 */
+}
+
+int is_valid_file(FILINFO* pfile_info) {
+  char* file_name;
+  int len;
+  file_name = pfile_info->lfname[0] ? pfile_info->lfname : pfile_info->fname;
+  len = strlen(file_name);
+  
+  if ((pfile_info->fattrib & INVALID_FILE_ATTR)) {
+    return 0;
+  }
+
+  if ((pfile_info->fattrib & AM_DIR)) {
+    return (file_name[0] != '.');
+  }
+  
+  if (len < 5) {
+    return 0;
+  }
+
+  return 1;
 }
 
 int get_num_files(FILINFO* pfile_info) {
@@ -42,13 +63,11 @@ int get_num_files(FILINFO* pfile_info) {
       break;
     }
 
-    if (pfile_info->fname[0] == '.') {
+    if (!is_valid_file(pfile_info)) {
       continue;
     }
 
-    if (!(pfile_info->fattrib & INVALID_FILE_ATTR)) {
-      num_files++;
-    }
+    num_files++;
   }
   return num_files;
 }
@@ -71,14 +90,12 @@ int get_file_at_index(FILINFO* pfile_info, int index) {
       break;
     }
 
-    if (pfile_info->fname[0] == '.') {
+    if (!is_valid_file(pfile_info)) {
       continue;
     }
 
-    if (!(pfile_info->fattrib & INVALID_FILE_ATTR)) {
-      if (cur_file_index == index) {
-        return 1;
-      }
+    if (cur_file_index == index) {
+      return 1;
     }
     cur_file_index++;
   }

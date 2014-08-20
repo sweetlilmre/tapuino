@@ -39,13 +39,24 @@ uint8_t get_cur_command() {
 }
 
 void handle_play_mode(FILINFO* pfile_info) {
-  lcd_title_P(S_SELECT_FILE);
-  if (!get_file_at_index(pfile_info, g_cur_file_index)) {
-    // shouldn't happen...
+  // reset to the root after a possible record operation
+  change_dir("/");
+  // refresh the file list to avoid blank entries bug
+  if ((g_num_files = get_num_files(pfile_info)) == 0) {
     lcd_title_P(S_NO_FILES_FOUND);
+    lcd_busy_spinner();
     return;
   }
 
+  g_cur_file_index = 0;
+  if (!get_file_at_index(pfile_info, g_cur_file_index)) {
+    // shouldn't happen...
+    lcd_title_P(S_NO_FILES_FOUND);
+    lcd_busy_spinner();
+    return;
+  }
+
+  lcd_title_P(S_SELECT_FILE);
   display_filename(pfile_info);
   
   while (1) {
@@ -122,9 +133,7 @@ void handle_record_mode_ready(char* pfile_name) {
       case COMMAND_SELECT:
       {
         record_file(pfile_name);
-        lcd_title_P(S_READY_RECORD);
-        lcd_status_P(S_PRESS_START);
-        break;
+        return;
       }
       case COMMAND_ABORT:
       {
@@ -264,10 +273,12 @@ void handle_record_mode_select(FILINFO* pfile_info) {
         {
           case REC_MODE_AUTO:
             handle_record_mode_ready(NULL);
+            return;
           break;
           case REC_MODE_MANUAL:
             if (handle_manual_filename(pfile_info)) {
               handle_record_mode_ready(pfile_info->lfname);
+              return;
             }
           break;
         }
@@ -278,13 +289,6 @@ void handle_record_mode_select(FILINFO* pfile_info) {
       }
       case COMMAND_ABORT:
       {
-        // reset to the root after a record operation
-        change_dir("/");
-        // refresh the file list to avoid blank entries bug
-        if ((g_num_files = get_num_files(pfile_info)) == 0) {
-          lcd_title_P(S_NO_FILES_FOUND);
-          return;
-        }
         return;
       }
       case COMMAND_NEXT:

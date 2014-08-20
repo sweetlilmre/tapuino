@@ -6,9 +6,9 @@ prog_char S_MKDIR_FAILED[] PROGMEM = "MKDIR failed!";
 prog_char S_CHDIR_FAILED[] PROGMEM = "CHDIR failed!";
 prog_char S_NAME_PATTERN[] PROGMEM = "rec-%.4d.tap";
 prog_char S_RECORDING[] PROGMEM = "Recording";
-prog_char S_SELECT_RECORD_MODE[] PROGMEM = "Recording mode:";
-prog_char S_REC_MODE_MANUAL[] PROGMEM = "Manual name";
-prog_char S_REC_MODE_AUTO[] PROGMEM = "Auto name";
+prog_char S_SELECT_RECORD_MODE[] PROGMEM = "TAP name mode:";
+prog_char S_REC_MODE_MANUAL[] PROGMEM = "Manual";
+prog_char S_REC_MODE_AUTO[] PROGMEM = "Auto";
 prog_char S_ENTER_FILENAME[] PROGMEM = "Enter file name";
 prog_char S_FILENAME_CHARS[] PROGMEM = " abcdefghijklmnopqrstuvwxyz0123456789_-";
 

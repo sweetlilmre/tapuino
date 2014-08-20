@@ -50,6 +50,7 @@ static uint32_t g_pulse_length = 0;             // length of pulse in uS
 static uint32_t g_pulse_length_save;            // save length for read
 static volatile uint32_t g_overflow;            // write signal overflow timer detection
 static volatile uint32_t g_timer_tick = 0;      // timer tick at 100Hz (10 ms interval)
+static volatile uint8_t g_invert_signal = 0;    // invert the signal for transmission/reception to/from a real Datasette
 
 uint32_t get_timer_tick() {
   return g_timer_tick;
@@ -118,7 +119,11 @@ ISR(TIMER1_COMPA_vect) {
       g_pulse_length = 0;                 // clear this, for 1st half check so that the next data is loaded
       g_signal_2nd_half = 0;              // next time round switch to 1st half
     }
-    TAPE_READ_HIGH();                     // set the signal high
+    if (g_invert_signal) {
+      TAPE_READ_LOW();                     // set the signal high
+    } else {
+      TAPE_READ_HIGH();                   // set the signal high
+    }
   } else {                                // 1st half of the signal
     if (g_pulse_length) {                 // do we have any pulse left?
       if (g_pulse_length > 0xFFFF) {      // check to see if its bigger than 16 bits
@@ -155,7 +160,11 @@ ISR(TIMER1_COMPA_vect) {
         g_pulse_length = g_pulse_length_save; // restore pulse length for the 2nd half of the signal
         g_signal_2nd_half = 1;            // next time round switch to 2nd half
       }
-      TAPE_READ_LOW();
+      if (g_invert_signal) {
+        TAPE_READ_HIGH();                   // set the signal high
+      } else {
+        TAPE_READ_LOW();                     // set the signal high
+      }
     }
   }
 }
@@ -232,7 +241,11 @@ int play_file(FILINFO* pfile_info)
 
   lcd_title_P(S_LOADING);
 
-  TAPE_READ_LOW();
+  if (g_invert_signal) {
+    TAPE_READ_LOW();                     // set the signal low
+  } else {
+    TAPE_READ_HIGH();                   // set the signal high
+  }
   SENSE_ON();
   // Start send-ISR
   signal_timer_start(0);
@@ -282,7 +295,11 @@ int play_file(FILINFO* pfile_info)
   signal_timer_stop();
   f_close(&g_fil);
   
-  TAPE_READ_LOW();
+  if (g_invert_signal) {
+    TAPE_READ_LOW();                     // set the signal high
+  } else {
+    TAPE_READ_HIGH();                   // set the signal high
+  }
   SENSE_OFF();
 
   if (g_cur_command == COMMAND_ABORT) {

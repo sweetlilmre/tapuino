@@ -92,6 +92,7 @@ void lcd_spinner_internal(uint32_t cur_tick, int8_t perc, uint16_t rate) {
   }
   g_char_buffer[5] = MOTOR_IS_OFF() ? 'm' : 'M';
   g_char_buffer[6] = indicators[pos++];
+  g_char_buffer[7] = 0;
   lcd_print(g_char_buffer);
 
   if (pos > 3) {
@@ -106,7 +107,7 @@ void lcd_spinner(uint32_t cur_tick, int8_t perc) {
 void lcd_busy_spinner() {
   uint8_t i;
   for (i = 0; i < 100; i++) {
-    lcd_spinner_internal(i, 100, 0);
+    lcd_spinner_internal(i, -1, 0);
     _delay_ms(20);
   }
 }
