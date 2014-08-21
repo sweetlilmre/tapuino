@@ -35,18 +35,22 @@ void filename_ticker(FILINFO* pfile_info, uint32_t cur_tick) {
   if (g_ticker_enabled) {
     if (!last_tick) last_tick = cur_tick;
     
+    // how often do we tick?
     if (cur_tick - last_tick < (SPINNER_RATE / 10)) {
       return;
     }
     last_tick = cur_tick;
 
     if (!last_hold) last_hold = cur_tick;
+    // how long do we hold?
     if (cur_tick - last_hold < (TICKER_HOLD / 10)) {
       return;
     }
 
     ticker_string = pfile_info->lfname[0] ? pfile_info->lfname : pfile_info->fname;
+    // is the filename within screen bounds?
     if ((strlen(ticker_string) - ticker_index) <= MAX_LCD_LINE_LEN) {
+      // how long do we hold at the end?
       if (cur_tick - last_hold < (TICKER_HOLD * 2 / 10)) {
         return;
       }
@@ -115,8 +119,6 @@ void lcd_busy_spinner() {
 
 void lcd_show_dir() {
   lcd_setCursor(MAX_LCD_LINE_LEN - 1, 1);
-  
-  
   lcd_write(DIRECTORY_INDICATOR);
 }
 
@@ -154,6 +156,6 @@ void lcd_status_P(const char* msg) {
 void lcd_setup() {
   lcd_begin(LCD_I2C_ADDR, MAX_LCD_LINE_LEN, LCD_NUM_LINES, LCD_5x8DOTS);
   lcd_backlight();
-  // can't define this as the zeroth character as zero is null in sprintf! :)
+  // can't define this as the zeroth character as zero is null in strings :)! :)
   lcd_createChar(1, backslashChar);
 }

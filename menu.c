@@ -11,16 +11,16 @@
 #include "lcd.h"
 #include "lcdutils.h"
 
-#define MODE_FIRST    0
-#define MODE_PLAY     0
-#define MODE_RECORD   1
-#define MODE_OPTIONS  2
-#define MODE_LAST     2
+#define MODE_PLAY         0
+#define MODE_RECORD       1
+#define MODE_OPTIONS      2
 
-#define REC_MODE_FIRST   0
-#define REC_MODE_MANUAL  0
-#define REC_MODE_AUTO    1
-#define REC_MODE_LAST    1
+#define REC_MODE_MANUAL   0
+#define REC_MODE_AUTO     1
+
+#define OPTION_SIGNAL     0
+#define OPTION_KEYS       1
+#define OPTION_DISPLAY    2
 
 #define SELECT_MODE_EXIT 0xFF
 
@@ -71,35 +71,6 @@ uint8_t handle_select_mode(const char* ptitle, const char** ppitems, uint8_t max
           cur_mode = max -1;
         } else {
           cur_mode--;
-        }
-      break;
-    }
-  }
-}
-
-uint8_t handle_option_mode(const char* ptitle, const char* poption, uint16_t* pcur_value, uint16_t min_value, uint16_t max_value, uint16_t step_value) {
-  int32_t cur_value = *pcur_value;
-  lcd_title_P(ptitle);
-  
-  while (1) {
-    switch(get_cur_command()) {
-      case COMMAND_SELECT:
-        *pcur_value = (uint16_t) cur_value;
-        return 1;
-      break;
-      case COMMAND_ABORT:
-        return 0;
-      break;
-      case COMMAND_NEXT:
-        cur_value += step_value;
-        if (cur_value > max_value) {
-          cur_value = max_value;
-        }
-      break;
-      case COMMAND_PREVIOUS:
-        cur_value -= step_value;
-        if (cur_value < min_value) {
-          cur_value = min_value;
         }
       break;
     }
@@ -315,11 +286,56 @@ void handle_record_mode(FILINFO* pfile_info) {
   }
 }
 
+
+uint8_t handle_option_value(const char* ptitle, const char* poption, uint16_t* pcur_value, uint16_t min_value, uint16_t max_value, uint16_t step_value) {
+  char buffer[MAX_LCD_LINE_LEN + 1];
+  int32_t cur_value = *pcur_value;
+  lcd_title_P(poption);
+  
+  ultoa(cur_value, buffer, 10);
+  lcd_status(buffer);
+  
+  while (1) {
+    switch(get_cur_command()) {
+      case COMMAND_SELECT:
+        *pcur_value = (uint16_t) cur_value;
+        return 1;
+      break;
+      case COMMAND_ABORT:
+        return 0;
+      break;
+      case COMMAND_NEXT:
+        cur_value += step_value;
+        if (cur_value > max_value) {
+          cur_value = max_value;
+        }
+        ultoa(cur_value, buffer, 10);
+        lcd_status(buffer);
+      break;
+      case COMMAND_PREVIOUS:
+        cur_value -= step_value;
+        if (cur_value < min_value) {
+          cur_value = min_value;
+        }
+        ultoa(cur_value, buffer, 10);
+        lcd_status(buffer);
+      break;
+    }
+  }
+}
+
 void handle_mode_options() {
   const char* ppitems[] = {S_OPTION_SIGNAL, S_OPTION_KEYS, S_OPTION_DISPLAY};
-
+  uint16_t value = 0;
+  
   while (1) {
-    switch (handle_select_mode(S_SELECT_MODE, ppitems, 3)) {
+    switch (handle_select_mode(S_MODE_OPTIONS, ppitems, 3)) {
+      case OPTION_SIGNAL:
+        value = g_invert_signal;
+        if (handle_option_value(S_MODE_OPTIONS, S_OPTION_SIGNAL, &value, 0, 1, 1)) {
+          g_invert_signal = value;
+        }
+      break;
       case SELECT_MODE_EXIT:
         return;
       break;
