@@ -18,7 +18,7 @@
 
 // Timing constants
 #define SPINNER_RATE        250  // milliseconds, granularity 10ms
-#define TICKER_HOLD         5    // ticker begin and end hold time in SPINNER_RATE units
+#define TICKER_HOLD         1250 // milliseconds, ticker begin and end hold time, granularity 10ms
 #define KEY_REPEAT_START    500  // milliseconds, granularity 10ms
 #define KEY_REPEAT_NEXT     300  // milliseconds, granularity 10ms
 #define REC_FINALIZE_TIME   2000 // milliseconds, granularity 10ms

@@ -13,9 +13,7 @@
 
 char g_char_buffer[MAX_LCD_LINE_LEN + 1] = {0};
 uint8_t g_ticker_enabled  = 0;
-uint8_t g_ticker_index = 0;
-uint8_t g_ticker_hold = TICKER_HOLD;
-uint8_t g_ticker_end_hold = TICKER_HOLD;
+
 
 uint8_t backslashChar[8] = {
     0b00000,
@@ -30,32 +28,37 @@ uint8_t backslashChar[8] = {
 
 void filename_ticker(FILINFO* pfile_info, uint32_t cur_tick) {
   static uint32_t last_tick = 0;
+  static uint32_t last_hold = 0;
+  static uint8_t ticker_index = 0;
   char* ticker_string;
 
   if (g_ticker_enabled) {
+    if (!last_tick) last_tick = cur_tick;
+    
     if (cur_tick - last_tick < (SPINNER_RATE / 10)) {
       return;
     }
     last_tick = cur_tick;
 
-    if (g_ticker_hold) {
-      g_ticker_hold--;
+    if (!last_hold) last_hold = cur_tick;
+    if (cur_tick - last_hold < (TICKER_HOLD / 10)) {
       return;
     }
 
-    g_ticker_index++;
     ticker_string = pfile_info->lfname[0] ? pfile_info->lfname : pfile_info->fname;
-    if ((strlen(ticker_string) - g_ticker_index) < (MAX_LCD_LINE_LEN - 1)) {
-      if (g_ticker_end_hold) {
-        g_ticker_index--;
-        g_ticker_end_hold--;
+    if ((strlen(ticker_string) - ticker_index) <= MAX_LCD_LINE_LEN) {
+      if (cur_tick - last_hold < (TICKER_HOLD * 2 / 10)) {
         return;
       }
-
-      g_ticker_index = 0;
-      g_ticker_hold = g_ticker_end_hold = TICKER_HOLD;
+      ticker_index = 0;
+      last_tick = last_hold = 0;
+    } else {
+      //reset to avoid overflow
+      last_hold = cur_tick - (TICKER_HOLD / 10) - 1;
+      ticker_index++;
     }
-    lcd_status(&ticker_string[g_ticker_index]);
+    
+    lcd_status(&ticker_string[ticker_index]);
     if (pfile_info->fattrib & AM_DIR) {
       lcd_show_dir();
     }  
@@ -70,8 +73,6 @@ void display_filename(FILINFO* pfile_info) {
   if (pfile_info->fattrib & AM_DIR) {
     lcd_show_dir();
   }  
-  g_ticker_index = 0;
-  g_ticker_hold = TICKER_HOLD;
   g_ticker_enabled = strlen(ticker_string) > (MAX_LCD_LINE_LEN - 1);
 }
 
