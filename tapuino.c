@@ -1,6 +1,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <avr/eeprom.h>
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
@@ -50,7 +51,13 @@ static uint32_t g_pulse_length = 0;             // length of pulse in uS
 static uint32_t g_pulse_length_save;            // save length for read
 static volatile uint32_t g_overflow;            // write signal overflow timer detection
 static volatile uint32_t g_timer_tick = 0;      // timer tick at 100Hz (10 ms interval)
+
 volatile uint8_t g_invert_signal = 0;           // invert the signal for transmission/reception to/from a real Datasette
+volatile uint16_t g_ticker_rate = TICKER_RATE / 10;
+volatile uint16_t g_ticker_hold = TICKER_HOLD / 10;
+volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
+volatile uint16_t g_key_repeat_next = KEY_REPEAT_NEXT / 10;
+volatile uint16_t g_rec_finalize_time = REC_FINALIZE_TIME / 10;
 
 uint32_t get_timer_tick() {
   return g_timer_tick;
@@ -193,13 +200,17 @@ void signal_timer_start(uint8_t recording) {
 
   if (recording) {
     g_overflow = 0;
-    TCCR1B = _BV(ICES1) | _BV(CS11);   // input capture, rising edge, pre-scaler 8 = 2 MHZ
-    TIMSK1 = _BV(ICIE1) | _BV(TOIE1);               // input capture interrupt, overflow interrupt
+    if (g_invert_signal) {
+      TCCR1B = _BV(CS11);               // input capture, FALLING edge, pre-scaler 8 = 2 MHZ
+    } else {
+      TCCR1B = _BV(ICES1) | _BV(CS11);  // input capture, RISING edge, pre-scaler 8 = 2 MHZ
+    }
+    TIMSK1 = _BV(ICIE1) | _BV(TOIE1);   // input capture interrupt enable, overflow interrupt enable
   } else {
     g_total_timer_count = 0;
-    TCCR1B |=  _BV(CS11) | _BV(WGM12);              // pre-scaler 8 = 2 MHZ, CTC Mode
+    TCCR1B |=  _BV(CS11) | _BV(WGM12);  // pre-scaler 8 = 2 MHZ, CTC Mode
     OCR1A = 0xFFFF;
-    TIMSK1 |=  _BV(OCIE1A);                         // output compare interrupt
+    TIMSK1 |=  _BV(OCIE1A);             // output compare interrupt
   }
 }
 
@@ -379,8 +390,8 @@ void record_file(char* pfile_name) {
     while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
       // nasty bit of code to wait after the motor is shut off to finalise the TAP
       if (MOTOR_IS_OFF()) {
-        // use the 100Hz timer to wait 5 seconds after the motor has shut off
-        if ((g_timer_tick - tmp) > (REC_FINALIZE_TIME / 10)) {
+        // use the 100Hz timer to wait some time after the motor has shut off
+        if ((g_timer_tick - tmp) > (uint32_t) g_rec_finalize_time) {
           g_tap_file_complete = 1;
           break;
         }
@@ -430,17 +441,41 @@ void record_file(char* pfile_name) {
   lcd_busy_spinner();
 }
 
-
+/*
 int free_ram() {
   extern int __heap_start, *__brkval; 
   int v; 
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
+*/
+
+void load_eeprom_data() {
+  if (eeprom_read_byte((uint8_t *) 0) == 0xE7) {
+//    g_invert_signal = eeprom_read_byte((uint8_t *) 1);
+    g_ticker_rate = eeprom_read_byte((uint8_t *) 2);
+    g_ticker_hold = eeprom_read_byte((uint8_t *) 3);
+    g_key_repeat_start = eeprom_read_byte((uint8_t *) 4);
+    g_key_repeat_next = eeprom_read_byte((uint8_t *) 5);
+    g_rec_finalize_time = eeprom_read_byte((uint8_t *) 6);
+  }
+}
+
+void save_eeprom_data() {
+  eeprom_write_byte((uint8_t *) 0, 0xE7);
+//  eeprom_write_byte((uint8_t *) 1, g_invert_signal);
+  eeprom_write_byte((uint8_t *) 2, g_ticker_rate);
+  eeprom_write_byte((uint8_t *) 3, g_ticker_hold);
+  eeprom_write_byte((uint8_t *) 4, g_key_repeat_start);
+  eeprom_write_byte((uint8_t *) 5, g_key_repeat_next);
+  eeprom_write_byte((uint8_t *) 6, g_rec_finalize_time);
 }
 
 int tapuino_hardware_setup(void)
 {
   FRESULT res;
   uint8_t tmp;
+  
+  load_eeprom_data();
   
   // enable TWI pullups
   TWI_PORT |= _BV(TWI_PIN_SDA);

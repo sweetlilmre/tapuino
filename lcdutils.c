@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <util/delay.h>
+#include "tapuino.h"
 #include "ff.h"
 #include "config.h"
 #include "lcd.h"
@@ -12,8 +13,9 @@
 #define DIRECTORY_INDICATOR 0b01111110
 
 char g_char_buffer[MAX_LCD_LINE_LEN + 1] = {0};
-uint8_t g_ticker_enabled  = 0;
-
+static uint8_t g_ticker_enabled  = 0;
+static uint8_t g_ticker_index = 0;
+static uint32_t g_last_tick = 0;
 
 uint8_t backslashChar[8] = {
     0b00000,
@@ -27,42 +29,41 @@ uint8_t backslashChar[8] = {
 };
 
 void filename_ticker(FILINFO* pfile_info, uint32_t cur_tick) {
-  static uint32_t last_tick = 0;
+  
   static uint32_t last_hold = 0;
-  static uint8_t ticker_index = 0;
   char* ticker_string;
 
   if (g_ticker_enabled) {
-    if (!last_tick) last_tick = cur_tick;
+    if (!g_last_tick) g_last_tick = cur_tick;
     
     // how often do we tick?
-    if (cur_tick - last_tick < (SPINNER_RATE / 10)) {
+    if (cur_tick - g_last_tick < (uint32_t) g_ticker_rate) {
       return;
     }
-    last_tick = cur_tick;
+    g_last_tick = cur_tick;
 
     if (!last_hold) last_hold = cur_tick;
     // how long do we hold?
-    if (cur_tick - last_hold < (TICKER_HOLD / 10)) {
+    if (cur_tick - last_hold < (uint32_t) g_ticker_hold) {
       return;
     }
 
     ticker_string = pfile_info->lfname[0] ? pfile_info->lfname : pfile_info->fname;
     // is the filename within screen bounds?
-    if ((strlen(ticker_string) - ticker_index) <= MAX_LCD_LINE_LEN) {
+    if ((strlen(ticker_string) - g_ticker_index) <= MAX_LCD_LINE_LEN) {
       // how long do we hold at the end?
-      if (cur_tick - last_hold < (TICKER_HOLD * 2 / 10)) {
+      if (cur_tick - last_hold < (uint32_t) (g_ticker_hold << 1)) {
         return;
       }
-      ticker_index = 0;
-      last_tick = last_hold = 0;
+      g_ticker_index = 0;
+      g_last_tick = last_hold = 0;
     } else {
       //reset to avoid overflow
-      last_hold = cur_tick - (TICKER_HOLD / 10) - 1;
-      ticker_index++;
+      last_hold = cur_tick - g_ticker_hold - 1;
+      g_ticker_index++;
     }
     
-    lcd_status(&ticker_string[ticker_index]);
+    lcd_status(&ticker_string[g_ticker_index]);
     if (pfile_info->fattrib & AM_DIR) {
       lcd_show_dir();
     }  
@@ -78,17 +79,17 @@ void display_filename(FILINFO* pfile_info) {
     lcd_show_dir();
   }  
   g_ticker_enabled = strlen(ticker_string) > (MAX_LCD_LINE_LEN - 1);
+  g_ticker_index = 0;
 }
 
 void lcd_spinner_internal(uint32_t cur_tick, int8_t perc, uint16_t rate) {
   static uint8_t indicators[] = {'|', '/', '-', 1};
   static uint8_t pos = 0;
-  static uint32_t last_tick = 0;
-  if (cur_tick - last_tick < (rate / 10)) {
+  if (cur_tick - g_last_tick < rate) {
     return;
   }
   
-  last_tick = cur_tick;
+  g_last_tick = cur_tick;
   lcd_setCursor(MAX_LCD_LINE_LEN - 7, 0);
   if (perc < 0) {
     strncpy_P(g_char_buffer, S_MAX_BLANK_LINE, 7);
@@ -106,7 +107,7 @@ void lcd_spinner_internal(uint32_t cur_tick, int8_t perc, uint16_t rate) {
 }
 
 void lcd_spinner(uint32_t cur_tick, int8_t perc) {
-  lcd_spinner_internal(cur_tick, perc, SPINNER_RATE);
+  lcd_spinner_internal(cur_tick, perc, g_ticker_rate);
 }
 
 void lcd_busy_spinner() {

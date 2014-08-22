@@ -7,7 +7,12 @@ void tapuino_run();
 void record_file(char* pfile_name);
 int play_file(FILINFO* pfile_info);
 uint32_t get_timer_tick();
+void save_eeprom_data();
 
 extern volatile uint8_t g_invert_signal;
+extern volatile uint8_t g_ticker_rate;
+extern volatile uint8_t g_ticker_hold;
+extern volatile uint8_t g_key_repeat_next;
+extern volatile uint8_t g_rec_finalize_time;
 
 #endif

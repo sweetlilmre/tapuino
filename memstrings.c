@@ -7,10 +7,9 @@ prog_char S_RECORDING[] PROGMEM = "Recording";
 prog_char S_SELECT_RECORD_MODE[] PROGMEM = "Name mode:";
 prog_char S_REC_MODE_MANUAL[] PROGMEM = "Manual";
 prog_char S_REC_MODE_AUTO[] PROGMEM = "Auto";
-prog_char S_ENTER_FILENAME[] PROGMEM = "Enter file name";
+prog_char S_ENTER_FILENAME[] PROGMEM = "Enter name";
 prog_char S_FILENAME_CHARS[] PROGMEM = " abcdefghijklmnopqrstuvwxyz0123456789_-";
 
-prog_char S_INITI2COK[] PROGMEM = "I2C OK";
 prog_char S_INIT[] PROGMEM = "Init...";
 prog_char S_INIT_FAILED[] PROGMEM = "Init failed!";
 prog_char S_INIT_OK[] PROGMEM = "Init OK.";
@@ -25,8 +24,10 @@ prog_char S_PRESS_START[] PROGMEM = "Press START";
 
 prog_char S_MODE_OPTIONS[] PROGMEM = "Options";
 prog_char S_OPTION_SIGNAL[] PROGMEM = "Invert";
-prog_char S_OPTION_KEYS[] PROGMEM = "Keys";
-prog_char S_OPTION_DISPLAY[] PROGMEM = "Display";
+prog_char S_OPTION_KEY_REPEAT[] PROGMEM = "Key speed";
+prog_char S_OPTION_TICKER_SPEED[] PROGMEM = "Ticker speed";
+prog_char S_OPTION_TICKER_HOLD[] PROGMEM = "Ticker hold";
+prog_char S_OPTION_REC_FINALIZE[] PROGMEM = "Record finalize";
 
 prog_char S_MKDIR_FAILED[] PROGMEM = "MKDIR fail!";
 prog_char S_CHDIR_FAILED[] PROGMEM = "CHDIR fail!";

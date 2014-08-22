@@ -27,8 +27,10 @@ extern prog_char S_PRESS_START[];
 
 extern prog_char S_MODE_OPTIONS[];
 extern prog_char S_OPTION_SIGNAL[];
-extern prog_char S_OPTION_KEYS[];
-extern prog_char S_OPTION_DISPLAY[];
+extern prog_char S_OPTION_KEY_REPEAT[];
+extern prog_char S_OPTION_TICKER_SPEED[];
+extern prog_char S_OPTION_TICKER_HOLD[];
+extern prog_char S_OPTION_REC_FINALIZE[];
 
 extern prog_char S_MKDIR_FAILED[];
 extern prog_char S_CHDIR_FAILED[];

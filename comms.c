@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <inttypes.h>
+#include "tapuino.h"
 #include "config.h"
 #include "comms.h"
 
@@ -99,9 +100,9 @@ void input_callback()
   key_press |= key_state & i;  // 0->1: key press detect
 
   if( (key_state & REPEAT_MASK) == 0 )   // check repeat function 
-     rpt = (KEY_REPEAT_START / 10);      // start delay 
+     rpt = (KEY_REPEAT_START / 10);           // start delay 
   if( --rpt == 0 ){ 
-    rpt = (KEY_REPEAT_NEXT / 10);         // repeat delay 
+    rpt = g_key_repeat_next;             // repeat delay 
     key_rpt |= key_state & REPEAT_MASK; 
   } 
   player_handleInputKeys();
