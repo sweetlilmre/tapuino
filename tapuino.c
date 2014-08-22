@@ -50,7 +50,7 @@ static uint32_t g_pulse_length = 0;             // length of pulse in uS
 static uint32_t g_pulse_length_save;            // save length for read
 static volatile uint32_t g_overflow;            // write signal overflow timer detection
 static volatile uint32_t g_timer_tick = 0;      // timer tick at 100Hz (10 ms interval)
-static volatile uint8_t g_invert_signal = 0;    // invert the signal for transmission/reception to/from a real Datasette
+volatile uint8_t g_invert_signal = 0;           // invert the signal for transmission/reception to/from a real Datasette
 
 uint32_t get_timer_tick() {
   return g_timer_tick;

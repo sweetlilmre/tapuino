@@ -8,6 +8,6 @@ void record_file(char* pfile_name);
 int play_file(FILINFO* pfile_info);
 uint32_t get_timer_tick();
 
-volatile uint8_t g_invert_signal;
+extern volatile uint8_t g_invert_signal;
 
 #endif
