@@ -449,6 +449,15 @@ int free_ram() {
 }
 */
 
+#ifndef eeprom_update_byte
+#define eeprom_update_byte(loc, val) \
+do \
+{ \
+if((uint8_t)(val) != eeprom_read_byte((loc))) \
+{ eeprom_write_byte((loc), (val)); } \
+} while(0)
+#endif 
+
 void load_eeprom_data() {
   if (eeprom_read_byte((uint8_t *) 0) == 0xE7) {
 //    g_invert_signal = eeprom_read_byte((uint8_t *) 1);
@@ -461,13 +470,13 @@ void load_eeprom_data() {
 }
 
 void save_eeprom_data() {
-  eeprom_write_byte((uint8_t *) 0, 0xE7);
-//  eeprom_write_byte((uint8_t *) 1, g_invert_signal);
-  eeprom_write_byte((uint8_t *) 2, g_ticker_rate);
-  eeprom_write_byte((uint8_t *) 3, g_ticker_hold_rate);
-  eeprom_write_byte((uint8_t *) 4, g_key_repeat_start);
-  eeprom_write_byte((uint8_t *) 5, g_key_repeat_next);
-  eeprom_write_byte((uint8_t *) 6, g_rec_finalize_time);
+  eeprom_update_byte((uint8_t *) 0, 0xE7);
+//  eeprom_update_byte((uint8_t *) 1, g_invert_signal);
+  eeprom_update_byte((uint8_t *) 2, g_ticker_rate);
+  eeprom_update_byte((uint8_t *) 3, g_ticker_hold_rate);
+  eeprom_update_byte((uint8_t *) 4, g_key_repeat_start);
+  eeprom_update_byte((uint8_t *) 5, g_key_repeat_next);
+  eeprom_update_byte((uint8_t *) 6, g_rec_finalize_time);
 }
 
 int tapuino_hardware_setup(void)
