@@ -355,9 +355,9 @@ void handle_mode_options() {
         }
       break;
       case OPTION_TICKER_HOLD:
-        value = g_ticker_hold * 10;
+        value = g_ticker_hold_rate * 10;
         if (handle_option_value(S_MODE_OPTIONS, S_OPTION_TICKER_HOLD, &value, 250, 2500, 250)) {
-          g_ticker_hold = value / 10;
+          g_ticker_hold_rate = value / 10;
           save = 1;
         }
       break;

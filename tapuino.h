@@ -11,7 +11,7 @@ void save_eeprom_data();
 
 extern volatile uint8_t g_invert_signal;
 extern volatile uint8_t g_ticker_rate;
-extern volatile uint8_t g_ticker_hold;
+extern volatile uint8_t g_ticker_hold_rate;
 extern volatile uint8_t g_key_repeat_next;
 extern volatile uint8_t g_rec_finalize_time;
 

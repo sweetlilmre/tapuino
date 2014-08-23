@@ -54,7 +54,7 @@ static volatile uint32_t g_timer_tick = 0;      // timer tick at 100Hz (10 ms in
 
 volatile uint8_t g_invert_signal = 0;           // invert the signal for transmission/reception to/from a real Datasette
 volatile uint16_t g_ticker_rate = TICKER_RATE / 10;
-volatile uint16_t g_ticker_hold = TICKER_HOLD / 10;
+volatile uint16_t g_ticker_hold_rate = TICKER_HOLD / 10;
 volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
 volatile uint16_t g_key_repeat_next = KEY_REPEAT_NEXT / 10;
 volatile uint16_t g_rec_finalize_time = REC_FINALIZE_TIME / 10;
@@ -453,7 +453,7 @@ void load_eeprom_data() {
   if (eeprom_read_byte((uint8_t *) 0) == 0xE7) {
 //    g_invert_signal = eeprom_read_byte((uint8_t *) 1);
     g_ticker_rate = eeprom_read_byte((uint8_t *) 2);
-    g_ticker_hold = eeprom_read_byte((uint8_t *) 3);
+    g_ticker_hold_rate = eeprom_read_byte((uint8_t *) 3);
     g_key_repeat_start = eeprom_read_byte((uint8_t *) 4);
     g_key_repeat_next = eeprom_read_byte((uint8_t *) 5);
     g_rec_finalize_time = eeprom_read_byte((uint8_t *) 6);
@@ -464,7 +464,7 @@ void save_eeprom_data() {
   eeprom_write_byte((uint8_t *) 0, 0xE7);
 //  eeprom_write_byte((uint8_t *) 1, g_invert_signal);
   eeprom_write_byte((uint8_t *) 2, g_ticker_rate);
-  eeprom_write_byte((uint8_t *) 3, g_ticker_hold);
+  eeprom_write_byte((uint8_t *) 3, g_ticker_hold_rate);
   eeprom_write_byte((uint8_t *) 4, g_key_repeat_start);
   eeprom_write_byte((uint8_t *) 5, g_key_repeat_next);
   eeprom_write_byte((uint8_t *) 6, g_rec_finalize_time);
