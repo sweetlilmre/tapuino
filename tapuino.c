@@ -70,7 +70,7 @@ ISR(TIMER1_CAPT_vect) {
   if(g_signal_2nd_half) {                             // finished measuring 
     g_pulse_length = ICR1;                            // pulse length = ICR1 i.e. timer count
     g_pulse_length += (g_overflow << 16);             // add overflows
-    g_pulse_length >>= 1;                             // turn raw tick values at 0.5us into 1us i.e. divide by 2
+    g_pulse_length >>= 4;                             // turn raw tick values at 1/16th us into 1us i.e. divide by 16
     // start counting here
     g_overflow = 0;
     TCNT1 = 0;
@@ -200,10 +200,9 @@ void signal_timer_start(uint8_t recording) {
 
   if (recording) {
     g_overflow = 0;
-    if (g_invert_signal) {
-      TCCR1B = _BV(CS11);               // input capture, FALLING edge, pre-scaler 8 = 2 MHZ
-    } else {
-      TCCR1B = _BV(ICES1) | _BV(CS11);  // input capture, RISING edge, pre-scaler 8 = 2 MHZ
+    TCCR1B = _BV(CS10) | _BV(ICNC1);    // input capture, FALLING edge, pre-scaler 1 = 16 MHZ, Input Capture Noise Canceller
+    if (!g_invert_signal) {
+      TCCR1B |= _BV(ICES1);             // switch to RISING edge
     }
     TIMSK1 = _BV(ICIE1) | _BV(TOIE1);   // input capture interrupt enable, overflow interrupt enable
   } else {
