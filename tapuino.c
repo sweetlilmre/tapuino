@@ -505,6 +505,11 @@ int tapuino_hardware_setup(void)
   MOTOR_DDR &= ~_BV(MOTOR_PIN);
   MOTOR_PORT |= _BV(MOTOR_PIN);
   
+  // Control pins are output
+  CONTROL_DDR |= _BV(CONTROL_PIN1) | _BV(CONTROL_PIN2);
+  // default both LOW
+  CONTROL_PORT &= ~(_BV(CONTROL_PIN1) | _BV(CONTROL_PIN2));
+  
   // keys are all inputs, activate pullups
   KEYS_READ_DDR &= ~_BV(KEY_SELECT_PIN);
   KEYS_READ_PORT |= _BV(KEY_SELECT_PIN);

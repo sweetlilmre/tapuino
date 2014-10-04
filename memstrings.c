@@ -39,5 +39,4 @@ prog_char S_LOADING[] PROGMEM = "Loading:";
 prog_char S_OPERATION_COMPLETE[] PROGMEM = "Complete!";
 prog_char S_OPERATION_ABORTED[] PROGMEM = "Aborted!";
 
-prog_char S_MAX_BLANK_LINE[] PROGMEM = "                    ";
 prog_char S_TAP_MAGIC_C64[] PROGMEM = "C64-TAPE-RAW";

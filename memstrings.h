@@ -40,7 +40,6 @@ extern prog_char S_INVALID_TAP[];
 extern prog_char S_LOADING[];
 extern prog_char S_OPERATION_COMPLETE[];
 extern prog_char S_OPERATION_ABORTED[];
-extern prog_char S_MAX_BLANK_LINE[];
 extern prog_char S_TAP_MAGIC_C64[];
 
 #endif

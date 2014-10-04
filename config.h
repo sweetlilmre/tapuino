@@ -53,6 +53,11 @@
 #define MOTOR_PINS          PIND
 #define MOTOR_IS_OFF()      (MOTOR_PINS & _BV(MOTOR_PIN))
 
+#define CONTROL_PORT        PORTD
+#define CONTROL_DDR         DDRD
+#define CONTROL_PIN1        6
+#define CONTROL_PIN2        7
+
 #define KEYS_READ_PORT      PORTC
 #define KEYS_READ_DDR       DDRC
 #define KEYS_READ_PINS      PINC
