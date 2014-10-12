@@ -337,6 +337,11 @@ void handle_mode_options() {
         value = g_invert_signal;
         if (handle_option_value(S_MODE_OPTIONS, S_OPTION_SIGNAL, &value, 0, 1, 1)) {
           g_invert_signal = value;
+          if (value) {
+            CONTROL_SET_BUS1();
+          } else {
+            CONTROL_SET_BUS0();
+          }
           save = 1;
         }
       break;

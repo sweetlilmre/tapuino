@@ -55,8 +55,10 @@
 
 #define CONTROL_PORT        PORTD
 #define CONTROL_DDR         DDRD
-#define CONTROL_PIN1        6
-#define CONTROL_PIN2        7
+#define CONTROL_PIN0        6
+#define CONTROL_PIN1        7
+#define CONTROL_SET_BUS0()  CONTROL_PORT &= ~(_BV(CONTROL_PIN0) | _BV(CONTROL_PIN1))
+#define CONTROL_SET_BUS1()  { CONTROL_PORT &= ~_BV(CONTROL_PIN1); CONTROL_PORT |= _BV(CONTROL_PIN0); }
 
 #define KEYS_READ_PORT      PORTC
 #define KEYS_READ_DDR       DDRC
