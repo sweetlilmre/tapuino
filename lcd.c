@@ -11,7 +11,7 @@
 
 #include "config.h"
 #include "i2cmaster.h"
-#include "LCD.h"
+#include "lcd.h"
 
 // When the display powers up, it is configured as follows:
 //
