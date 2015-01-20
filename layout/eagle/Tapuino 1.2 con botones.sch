@@ -2266,114 +2266,6 @@ type RDH, grid 15 mm</description>
 </deviceset>
 </devicesets>
 </library>
-<library name="commodore">
-<packages>
-<package name="C64_CASSETTE">
-<wire x1="-24.13" y1="5.588" x2="-24.13" y2="-7.62" width="0" layer="20"/>
-<wire x1="-24.13" y1="-7.62" x2="-16.3" y2="-7.62" width="0" layer="20"/>
-<wire x1="-15.36" y1="-7.62" x2="0.1524" y2="-7.62" width="0" layer="20"/>
-<wire x1="0.1524" y1="5.588" x2="0.1524" y2="-7.62" width="0" layer="20"/>
-<smd name="1" x="-21.7788" y="3.68" dx="2.54" dy="5.08" layer="1" roundness="30"/>
-<smd name="2" x="-17.8188" y="3.68" dx="2.54" dy="5.08" layer="1" roundness="30"/>
-<smd name="3" x="-13.8588" y="3.68" dx="2.54" dy="5.08" layer="1" roundness="30"/>
-<smd name="4" x="-9.8988" y="3.68" dx="2.54" dy="5.08" layer="1" roundness="30"/>
-<smd name="5" x="-5.9388" y="3.68" dx="2.54" dy="5.08" layer="1" roundness="30"/>
-<smd name="6" x="-1.9788" y="3.68" dx="2.54" dy="5.08" layer="1" roundness="30"/>
-<smd name="A" x="-21.7788" y="3.68" dx="2.54" dy="5.08" layer="16" roundness="30"/>
-<smd name="B" x="-17.8188" y="3.68" dx="2.54" dy="5.08" layer="16" roundness="30"/>
-<smd name="C" x="-13.8588" y="3.68" dx="2.54" dy="5.08" layer="16" roundness="30"/>
-<smd name="D" x="-9.8988" y="3.68" dx="2.54" dy="5.08" layer="16" roundness="30"/>
-<smd name="E" x="-5.9388" y="3.68" dx="2.54" dy="5.08" layer="16" roundness="30"/>
-<smd name="F" x="-1.9788" y="3.68" dx="2.54" dy="5.08" layer="16" roundness="30"/>
-<text x="-13.5588" y="7.04" size="1.27" layer="25">&gt;NAME</text>
-<text x="-22.52" y="6.92" size="1.27" layer="51">1</text>
-<text x="-2.41" y="6.92" size="1.27" layer="51">6</text>
-<rectangle x1="-23.265" y1="-6.93" x2="-20.295" y2="5.94" layer="29"/>
-<rectangle x1="-23.265" y1="-6.93" x2="-20.295" y2="5.94" layer="30"/>
-<rectangle x1="-19.305" y1="-6.93" x2="-16.335" y2="5.94" layer="29"/>
-<rectangle x1="-19.305" y1="-6.93" x2="-16.335" y2="5.94" layer="30"/>
-<rectangle x1="-15.345" y1="-6.93" x2="-12.375" y2="5.94" layer="29"/>
-<rectangle x1="-15.345" y1="-6.93" x2="-12.375" y2="5.94" layer="30"/>
-<rectangle x1="-11.385" y1="-6.93" x2="-8.415" y2="5.94" layer="29"/>
-<rectangle x1="-11.385" y1="-6.93" x2="-8.415" y2="5.94" layer="30"/>
-<rectangle x1="-7.425" y1="-6.93" x2="-4.455" y2="5.94" layer="29"/>
-<rectangle x1="-7.425" y1="-6.93" x2="-4.455" y2="5.94" layer="30"/>
-<rectangle x1="-3.465" y1="-6.93" x2="-0.495" y2="5.94" layer="29"/>
-<rectangle x1="-3.465" y1="-6.93" x2="-0.495" y2="5.94" layer="30"/>
-<rectangle x1="-23.265" y1="-6.93" x2="-20.295" y2="5.94" layer="1"/>
-<rectangle x1="-19.305" y1="-6.93" x2="-16.335" y2="5.94" layer="1"/>
-<rectangle x1="-15.345" y1="-6.93" x2="-12.375" y2="5.94" layer="1"/>
-<rectangle x1="-11.385" y1="-6.93" x2="-8.415" y2="5.94" layer="1"/>
-<rectangle x1="-7.425" y1="-6.93" x2="-4.455" y2="5.94" layer="1"/>
-<rectangle x1="-3.465" y1="-6.93" x2="-0.495" y2="5.94" layer="1"/>
-<rectangle x1="-23.265" y1="-6.93" x2="-20.295" y2="5.94" layer="16"/>
-<rectangle x1="-19.305" y1="-6.93" x2="-16.335" y2="5.94" layer="16"/>
-<rectangle x1="-15.345" y1="-6.93" x2="-12.375" y2="5.94" layer="16"/>
-<rectangle x1="-11.385" y1="-6.93" x2="-8.415" y2="5.94" layer="16"/>
-<rectangle x1="-7.425" y1="-6.93" x2="-4.455" y2="5.94" layer="16"/>
-<rectangle x1="-3.465" y1="-6.93" x2="-0.495" y2="5.94" layer="16"/>
-<wire x1="-16.3" y1="-7.62" x2="-16.3" y2="5.08" width="0" layer="20"/>
-<wire x1="-16.3" y1="5.08" x2="-15.36" y2="5.08" width="0" layer="20"/>
-<wire x1="-15.36" y1="5.08" x2="-15.36" y2="-7.62" width="0" layer="20"/>
-</package>
-</packages>
-<symbols>
-<symbol name="C64_CASETTE_EDGE">
-<wire x1="7.62" y1="17.78" x2="-5.08" y2="17.78" width="0.254" layer="94"/>
-<wire x1="-5.08" y1="17.78" x2="-5.08" y2="-15.24" width="0.254" layer="94"/>
-<wire x1="-5.08" y1="-15.24" x2="7.62" y2="-15.24" width="0.254" layer="94"/>
-<wire x1="7.62" y1="-15.24" x2="7.62" y2="17.78" width="0.254" layer="94"/>
-<text x="-5.08" y="18.415" size="1.778" layer="95">&gt;NAME</text>
-<text x="-7.62" y="-17.78" size="1.778" layer="96">&gt;VALUE</text>
-<text x="-2.54" y="12.7" size="1.778" layer="94">Vcc</text>
-<text x="-2.54" y="-12.7" size="1.778" layer="94">GND</text>
-<text x="-2.54" y="7.62" size="1.778" layer="94">Read</text>
-<text x="-2.54" y="-2.54" size="1.778" layer="94">Sense</text>
-<text x="-2.54" y="2.54" size="1.778" layer="94">Write</text>
-<text x="-2.54" y="-7.62" size="1.778" layer="94">Motor</text>
-<pin name="VCC1" x="-10.16" y="15.24" visible="pad" length="middle" direction="pas"/>
-<pin name="VCC2" x="-10.16" y="12.7" visible="pad" length="middle" direction="pas"/>
-<pin name="MOTOR1" x="-10.16" y="-5.08" visible="pad" length="middle" direction="in"/>
-<pin name="MOTOR2" x="-10.16" y="-7.62" visible="pad" length="middle" direction="in"/>
-<pin name="SENSE1" x="-10.16" y="0" visible="pad" length="middle" direction="out"/>
-<pin name="SENSE2" x="-10.16" y="-2.54" visible="pad" length="middle" direction="pas"/>
-<pin name="WRITE1" x="-10.16" y="5.08" visible="pad" length="middle" direction="in"/>
-<pin name="WRITE2" x="-10.16" y="2.54" visible="pad" length="middle" direction="in"/>
-<pin name="GND1" x="-10.16" y="-10.16" visible="pad" length="middle" direction="pas"/>
-<pin name="GND2" x="-10.16" y="-12.7" visible="pad" length="middle" direction="pas"/>
-<pin name="READ1" x="-10.16" y="10.16" visible="pad" length="middle" direction="out"/>
-<pin name="READ2" x="-10.16" y="7.62" visible="pad" length="middle" direction="pas"/>
-</symbol>
-</symbols>
-<devicesets>
-<deviceset name="C64_CASETTE_EDGE" prefix="CN">
-<gates>
-<gate name="G$1" symbol="C64_CASETTE_EDGE" x="7.62" y="0"/>
-</gates>
-<devices>
-<device name="" package="C64_CASSETTE">
-<connects>
-<connect gate="G$1" pin="GND1" pad="1"/>
-<connect gate="G$1" pin="GND2" pad="A"/>
-<connect gate="G$1" pin="MOTOR1" pad="3"/>
-<connect gate="G$1" pin="MOTOR2" pad="C"/>
-<connect gate="G$1" pin="READ1" pad="4"/>
-<connect gate="G$1" pin="READ2" pad="D"/>
-<connect gate="G$1" pin="SENSE1" pad="6"/>
-<connect gate="G$1" pin="SENSE2" pad="F"/>
-<connect gate="G$1" pin="VCC1" pad="2"/>
-<connect gate="G$1" pin="VCC2" pad="B"/>
-<connect gate="G$1" pin="WRITE1" pad="5"/>
-<connect gate="G$1" pin="WRITE2" pad="E"/>
-</connects>
-<technologies>
-<technology name=""/>
-</technologies>
-</device>
-</devices>
-</deviceset>
-</devicesets>
-</library>
 <library name="optocoupler">
 <packages>
 <package name="DIL06">
@@ -3795,6 +3687,92 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 </deviceset>
 </devicesets>
 </library>
+<library name="commodore MOD">
+<description>A library which aims to include all commodore-related stuff. &lt;br&gt;&lt;br&gt;
+See &lt;b&gt;http://github.com/spacerace/8bit-eagle-libs/&lt;/b&gt;</description>
+<packages>
+<package name="C64_CASSETTE">
+<wire x1="-24.13" y1="5.588" x2="-24.13" y2="-7.62" width="0" layer="20"/>
+<wire x1="-24.13" y1="-7.62" x2="-16.3" y2="-7.62" width="0" layer="20"/>
+<wire x1="-15.36" y1="-7.62" x2="0.1524" y2="-7.62" width="0" layer="20"/>
+<wire x1="0.1524" y1="5.588" x2="0.1524" y2="-7.62" width="0" layer="20"/>
+<smd name="1" x="-21.7788" y="-0.5" dx="2.2" dy="12.7" layer="1" roundness="30"/>
+<smd name="2" x="-17.8188" y="-0.5" dx="2.2" dy="12.7" layer="1" roundness="30"/>
+<smd name="3" x="-13.8588" y="-0.5" dx="2.2" dy="12.7" layer="1" roundness="30"/>
+<smd name="4" x="-9.8988" y="-0.5" dx="2.2" dy="12.7" layer="1" roundness="30"/>
+<smd name="5" x="-5.9388" y="-0.5" dx="2.2" dy="12.7" layer="1" roundness="30"/>
+<smd name="6" x="-1.9788" y="-0.5" dx="2.2" dy="12.7" layer="1" roundness="30"/>
+<smd name="A" x="-21.7788" y="-0.5" dx="2.2" dy="12.7" layer="16" roundness="30"/>
+<smd name="B" x="-17.8188" y="-0.5" dx="2.2" dy="12.7" layer="16" roundness="30"/>
+<smd name="C" x="-13.8588" y="-0.5" dx="2.2" dy="12.7" layer="16" roundness="30"/>
+<smd name="D" x="-9.8988" y="-0.5" dx="2.2" dy="12.7" layer="16" roundness="30"/>
+<smd name="E" x="-5.9388" y="-0.5" dx="2.2" dy="12.7" layer="16" roundness="30"/>
+<smd name="F" x="-1.9788" y="-0.5" dx="2.2" dy="12.7" layer="16" roundness="30"/>
+<text x="-13.5588" y="7.04" size="1.27" layer="25">&gt;NAME</text>
+<text x="-22.52" y="6.92" size="1.27" layer="51">1</text>
+<text x="-2.41" y="6.92" size="1.27" layer="51">6</text>
+<wire x1="-16.3" y1="-7.62" x2="-16.3" y2="5.08" width="0" layer="20"/>
+<wire x1="-16.3" y1="5.08" x2="-15.36" y2="5.08" width="0" layer="20"/>
+<wire x1="-15.36" y1="5.08" x2="-15.36" y2="-7.62" width="0" layer="20"/>
+</package>
+</packages>
+<symbols>
+<symbol name="C64_CASETTE_EDGE">
+<wire x1="7.62" y1="17.78" x2="-5.08" y2="17.78" width="0.254" layer="94"/>
+<wire x1="-5.08" y1="17.78" x2="-5.08" y2="-15.24" width="0.254" layer="94"/>
+<wire x1="-5.08" y1="-15.24" x2="7.62" y2="-15.24" width="0.254" layer="94"/>
+<wire x1="7.62" y1="-15.24" x2="7.62" y2="17.78" width="0.254" layer="94"/>
+<text x="-5.08" y="18.415" size="1.778" layer="95">&gt;NAME</text>
+<text x="-7.62" y="-17.78" size="1.778" layer="96">&gt;VALUE</text>
+<text x="-2.54" y="12.7" size="1.778" layer="94">Vcc</text>
+<text x="-2.54" y="-12.7" size="1.778" layer="94">GND</text>
+<text x="-2.54" y="7.62" size="1.778" layer="94">Read</text>
+<text x="-2.54" y="-2.54" size="1.778" layer="94">Sense</text>
+<text x="-2.54" y="2.54" size="1.778" layer="94">Write</text>
+<text x="-2.54" y="-7.62" size="1.778" layer="94">Motor</text>
+<pin name="VCC1" x="-10.16" y="15.24" visible="pad" length="middle" direction="pwr"/>
+<pin name="VCC2" x="-10.16" y="12.7" visible="pad" length="middle" direction="pwr"/>
+<pin name="MOTOR1" x="-10.16" y="-5.08" visible="pad" length="middle" direction="out"/>
+<pin name="MOTOR2" x="-10.16" y="-7.62" visible="pad" length="middle" direction="out"/>
+<pin name="SENSE1" x="-10.16" y="0" visible="pad" length="middle" direction="in"/>
+<pin name="SENSE2" x="-10.16" y="-2.54" visible="pad" length="middle" direction="in"/>
+<pin name="WRITE1" x="-10.16" y="5.08" visible="pad" length="middle" direction="in"/>
+<pin name="WRITE2" x="-10.16" y="2.54" visible="pad" length="middle" direction="in"/>
+<pin name="GND1" x="-10.16" y="-10.16" visible="pad" length="middle" direction="pwr"/>
+<pin name="GND2" x="-10.16" y="-12.7" visible="pad" length="middle" direction="pwr"/>
+<pin name="READ1" x="-10.16" y="10.16" visible="pad" length="middle" direction="out"/>
+<pin name="READ2" x="-10.16" y="7.62" visible="pad" length="middle" direction="out"/>
+</symbol>
+</symbols>
+<devicesets>
+<deviceset name="C64_CASETTE_EDGE" prefix="CN">
+<gates>
+<gate name="G$1" symbol="C64_CASETTE_EDGE" x="7.62" y="0"/>
+</gates>
+<devices>
+<device name="" package="C64_CASSETTE">
+<connects>
+<connect gate="G$1" pin="GND1" pad="1"/>
+<connect gate="G$1" pin="GND2" pad="A"/>
+<connect gate="G$1" pin="MOTOR1" pad="3"/>
+<connect gate="G$1" pin="MOTOR2" pad="C"/>
+<connect gate="G$1" pin="READ1" pad="4"/>
+<connect gate="G$1" pin="READ2" pad="D"/>
+<connect gate="G$1" pin="SENSE1" pad="6"/>
+<connect gate="G$1" pin="SENSE2" pad="F"/>
+<connect gate="G$1" pin="VCC1" pad="2"/>
+<connect gate="G$1" pin="VCC2" pad="B"/>
+<connect gate="G$1" pin="WRITE1" pad="5"/>
+<connect gate="G$1" pin="WRITE2" pad="E"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+</devicesets>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -3818,16 +3796,16 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <part name="GND3" library="supply1" deviceset="GND" device=""/>
 <part name="P+2" library="supply1" deviceset="VCC" device=""/>
 <part name="P+3" library="supply1" deviceset="VCC" device=""/>
-<part name="CN1" library="commodore" deviceset="C64_CASETTE_EDGE" device=""/>
+<part name="CN1" library="commodore MOD" deviceset="C64_CASETTE_EDGE" device=""/>
 <part name="R5" library="resistor" deviceset="R-EU_" device="0207/10" value="330"/>
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
 <part name="GND5" library="supply1" deviceset="GND" device=""/>
 <part name="P+4" library="supply1" deviceset="VCC" device=""/>
 <part name="P+6" library="supply1" deviceset="VCC" device=""/>
-<part name="JP2" library="SparkFun" deviceset="M06" device="LOCK_LONGPADS" value="SD_SHIELD"/>
+<part name="JP1" library="SparkFun" deviceset="M06" device="LOCK_LONGPADS" value="SD_SHIELD"/>
 <part name="OK1" library="optocoupler" deviceset="4N35" device=""/>
-<part name="JP4" library="SparkFun" deviceset="M06" device="LOCK_LONGPADS" value="C64 CON"/>
-<part name="JP5" library="SparkFun" deviceset="M04" device="LOCK_LONGPADS" value="LCD_SHIELD"/>
+<part name="JP2" library="SparkFun" deviceset="M06" device="LOCK_LONGPADS" value="C64 CON"/>
+<part name="JP3" library="SparkFun" deviceset="M04" device="LOCK_LONGPADS" value="LCD_SHIELD"/>
 <part name="IC2" library="arduino" deviceset="ARDUINO_NANO_V3" device=""/>
 <part name="S1" library="switch-omron" deviceset="31-XX" device="" value="SELECT"/>
 <part name="S2" library="switch-omron" deviceset="31-XX" device="" value="ABORT/BACK"/>
@@ -3881,17 +3859,17 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <attribute name="VALUE" x="-48.26" y="25.4" size="1.778" layer="96"/>
 </instance>
 <instance part="IC1" gate="P" x="-7.62" y="-7.62" rot="R270"/>
-<instance part="JP2" gate="G$1" x="20.32" y="17.78"/>
+<instance part="JP1" gate="G$1" x="20.32" y="17.78"/>
 <instance part="OK1" gate="G$1" x="12.7" y="58.42"/>
-<instance part="JP4" gate="G$1" x="-63.5" y="88.9"/>
-<instance part="JP5" gate="G$1" x="116.84" y="63.5" rot="MR0"/>
+<instance part="JP2" gate="G$1" x="-63.5" y="88.9"/>
+<instance part="JP3" gate="G$1" x="116.84" y="63.5" rot="MR0"/>
 <instance part="IC2" gate="G$1" x="68.58" y="78.74"/>
 <instance part="S1" gate="1" x="127" y="45.72" rot="R270"/>
 <instance part="S2" gate="1" x="127" y="35.56" rot="R270"/>
 <instance part="S3" gate="1" x="127" y="25.4" rot="R270"/>
 <instance part="S4" gate="1" x="127" y="15.24" rot="R270"/>
 <instance part="GND6" gate="1" x="53.34" y="68.58"/>
-<instance part="GND1" gate="1" x="137.16" y="-10.16"/>
+<instance part="GND1" gate="1" x="137.16" y="-12.7"/>
 </instances>
 <busses>
 </busses>
@@ -3900,7 +3878,7 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <segment>
 <wire x1="25.4" y1="17.78" x2="43.18" y2="17.78" width="0.1524" layer="91"/>
 <wire x1="43.18" y1="17.78" x2="43.18" y2="15.24" width="0.1524" layer="91"/>
-<pinref part="JP2" gate="G$1" pin="3"/>
+<pinref part="JP1" gate="G$1" pin="3"/>
 <pinref part="IC2" gate="G$1" pin="D12"/>
 <wire x1="43.18" y1="15.24" x2="58.42" y2="15.24" width="0.1524" layer="91"/>
 </segment>
@@ -3912,7 +3890,7 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <wire x1="35.56" y1="7.62" x2="86.36" y2="7.62" width="0.1524" layer="91"/>
 <wire x1="86.36" y1="7.62" x2="86.36" y2="15.24" width="0.1524" layer="91"/>
 <wire x1="86.36" y1="15.24" x2="83.82" y2="15.24" width="0.1524" layer="91"/>
-<pinref part="JP2" gate="G$1" pin="5"/>
+<pinref part="JP1" gate="G$1" pin="5"/>
 <pinref part="IC2" gate="G$1" pin="D13"/>
 </segment>
 </net>
@@ -3921,7 +3899,7 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <wire x1="83.82" y1="55.88" x2="91.44" y2="55.88" width="0.1524" layer="91"/>
 <wire x1="91.44" y1="55.88" x2="91.44" y2="68.58" width="0.1524" layer="91"/>
 <wire x1="91.44" y1="68.58" x2="111.76" y2="68.58" width="0.1524" layer="91"/>
-<pinref part="JP5" gate="G$1" pin="4"/>
+<pinref part="JP3" gate="G$1" pin="4"/>
 <pinref part="IC2" gate="G$1" pin="A5"/>
 </segment>
 </net>
@@ -3930,7 +3908,7 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <wire x1="83.82" y1="50.8" x2="93.98" y2="50.8" width="0.1524" layer="91"/>
 <wire x1="93.98" y1="50.8" x2="93.98" y2="66.04" width="0.1524" layer="91"/>
 <wire x1="93.98" y1="66.04" x2="111.76" y2="66.04" width="0.1524" layer="91"/>
-<pinref part="JP5" gate="G$1" pin="3"/>
+<pinref part="JP3" gate="G$1" pin="3"/>
 <pinref part="IC2" gate="G$1" pin="A4"/>
 </segment>
 </net>
@@ -3939,7 +3917,7 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <wire x1="106.68" y1="55.88" x2="106.68" y2="60.96" width="0.1524" layer="91"/>
 <wire x1="106.68" y1="60.96" x2="111.76" y2="60.96" width="0.1524" layer="91"/>
 <pinref part="GND3" gate="1" pin="GND"/>
-<pinref part="JP5" gate="G$1" pin="1"/>
+<pinref part="JP3" gate="G$1" pin="1"/>
 </segment>
 <segment>
 <pinref part="OK1" gate="G$1" pin="C"/>
@@ -3968,14 +3946,14 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <wire x1="-20.32" y1="53.34" x2="-20.32" y2="60.96" width="0.1524" layer="91"/>
 <wire x1="-50.8" y1="10.16" x2="-20.32" y2="10.16" width="0.1524" layer="91"/>
 <junction x="-20.32" y="10.16"/>
-<pinref part="JP4" gate="G$1" pin="1"/>
+<pinref part="JP2" gate="G$1" pin="1"/>
 <wire x1="-20.32" y1="53.34" x2="-7.62" y2="53.34" width="0.1524" layer="91"/>
 <junction x="-20.32" y="53.34"/>
 <junction x="-7.62" y="53.34"/>
 </segment>
 <segment>
+<pinref part="JP1" gate="G$1" pin="1"/>
 <pinref part="GND2" gate="1" pin="GND"/>
-<pinref part="JP2" gate="G$1" pin="1"/>
 <wire x1="25.4" y1="12.7" x2="25.4" y2="-12.7" width="0.1524" layer="91"/>
 </segment>
 <segment>
@@ -3996,11 +3974,8 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <junction x="53.34" y="71.12"/>
 </segment>
 <segment>
-<pinref part="S4" gate="1" pin="S"/>
 <wire x1="137.16" y1="45.72" x2="137.16" y2="35.56" width="0.1524" layer="91"/>
 <wire x1="137.16" y1="35.56" x2="137.16" y2="25.4" width="0.1524" layer="91"/>
-<wire x1="137.16" y1="25.4" x2="137.16" y2="15.24" width="0.1524" layer="91"/>
-<wire x1="137.16" y1="15.24" x2="132.08" y2="15.24" width="0.1524" layer="91"/>
 <pinref part="S3" gate="1" pin="S"/>
 <wire x1="132.08" y1="25.4" x2="137.16" y2="25.4" width="0.1524" layer="91"/>
 <pinref part="S2" gate="1" pin="S"/>
@@ -4009,9 +3984,12 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <wire x1="132.08" y1="45.72" x2="137.16" y2="45.72" width="0.1524" layer="91"/>
 <junction x="137.16" y="35.56"/>
 <junction x="137.16" y="25.4"/>
-<wire x1="137.16" y1="-7.62" x2="137.16" y2="15.24" width="0.1524" layer="91"/>
-<junction x="137.16" y="15.24"/>
+<wire x1="137.16" y1="25.4" x2="137.16" y2="15.24" width="0.1524" layer="91"/>
 <pinref part="GND1" gate="1" pin="GND"/>
+<pinref part="S4" gate="1" pin="S"/>
+<wire x1="137.16" y1="15.24" x2="137.16" y2="-10.16" width="0.1524" layer="91"/>
+<wire x1="132.08" y1="15.24" x2="137.16" y2="15.24" width="0.1524" layer="91"/>
+<junction x="137.16" y="15.24"/>
 </segment>
 </net>
 <net name="VCC" class="2">
@@ -4029,19 +4007,19 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <wire x1="30.48" y1="-7.62" x2="30.48" y2="-12.7" width="0.1524" layer="91"/>
 <wire x1="0" y1="-7.62" x2="30.48" y2="-7.62" width="0.1524" layer="91"/>
 <junction x="30.48" y="-7.62"/>
-<pinref part="JP2" gate="G$1" pin="2"/>
+<pinref part="JP1" gate="G$1" pin="2"/>
 </segment>
 <segment>
 <wire x1="101.6" y1="55.88" x2="101.6" y2="63.5" width="0.1524" layer="91"/>
 <wire x1="101.6" y1="63.5" x2="111.76" y2="63.5" width="0.1524" layer="91"/>
 <pinref part="P+3" gate="VCC" pin="VCC"/>
-<pinref part="JP5" gate="G$1" pin="2"/>
+<pinref part="JP3" gate="G$1" pin="2"/>
 </segment>
 <segment>
 <wire x1="-58.42" y1="86.36" x2="-15.24" y2="86.36" width="0.1524" layer="91"/>
 <wire x1="-15.24" y1="86.36" x2="-15.24" y2="73.66" width="0.1524" layer="91"/>
 <pinref part="P+4" gate="VCC" pin="VCC"/>
-<pinref part="JP4" gate="G$1" pin="2"/>
+<pinref part="JP2" gate="G$1" pin="2"/>
 </segment>
 <segment>
 <pinref part="CN1" gate="G$1" pin="VCC1"/>
@@ -4080,7 +4058,7 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <wire x1="-53.34" y1="58.42" x2="-48.26" y2="58.42" width="0.1524" layer="91"/>
 <wire x1="-48.26" y1="58.42" x2="-48.26" y2="55.88" width="0.1524" layer="91"/>
 <junction x="-48.26" y="55.88"/>
-<pinref part="JP4" gate="G$1" pin="3"/>
+<pinref part="JP2" gate="G$1" pin="3"/>
 </segment>
 </net>
 <net name="N$16" class="0">
@@ -4089,7 +4067,7 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <wire x1="-30.48" y1="91.44" x2="-30.48" y2="-12.7" width="0.1524" layer="91"/>
 <pinref part="IC1" gate="A" pin="X0"/>
 <wire x1="-30.48" y1="-12.7" x2="-50.8" y2="-12.7" width="0.1524" layer="91"/>
-<pinref part="JP4" gate="G$1" pin="4"/>
+<pinref part="JP2" gate="G$1" pin="4"/>
 </segment>
 </net>
 <net name="N$17" class="0">
@@ -4106,7 +4084,7 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <wire x1="-53.34" y1="53.34" x2="-48.26" y2="53.34" width="0.1524" layer="91"/>
 <wire x1="-48.26" y1="53.34" x2="-48.26" y2="50.8" width="0.1524" layer="91"/>
 <junction x="-48.26" y="50.8"/>
-<pinref part="JP4" gate="G$1" pin="6"/>
+<pinref part="JP2" gate="G$1" pin="6"/>
 <pinref part="IC2" gate="G$1" pin="D5"/>
 <wire x1="45.72" y1="50.8" x2="58.42" y2="50.8" width="0.1524" layer="91"/>
 </segment>
@@ -4117,7 +4095,7 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 <wire x1="-35.56" y1="93.98" x2="-35.56" y2="0" width="0.1524" layer="91"/>
 <pinref part="IC1" gate="A" pin="Y0"/>
 <wire x1="-35.56" y1="0" x2="-50.8" y2="0" width="0.1524" layer="91"/>
-<pinref part="JP4" gate="G$1" pin="5"/>
+<pinref part="JP2" gate="G$1" pin="5"/>
 </segment>
 </net>
 <net name="N$19" class="0">
@@ -4217,14 +4195,14 @@ Standard 4-pin 0.1" header. Use with straight break away headers (SKU : PRT-0011
 </net>
 <net name="N$2" class="0">
 <segment>
-<pinref part="JP2" gate="G$1" pin="6"/>
+<pinref part="JP1" gate="G$1" pin="6"/>
 <pinref part="IC2" gate="G$1" pin="D10"/>
 <wire x1="25.4" y1="25.4" x2="58.42" y2="25.4" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$4" class="0">
 <segment>
-<pinref part="JP2" gate="G$1" pin="4"/>
+<pinref part="JP1" gate="G$1" pin="4"/>
 <pinref part="IC2" gate="G$1" pin="D11"/>
 <wire x1="25.4" y1="20.32" x2="58.42" y2="20.32" width="0.1524" layer="91"/>
 </segment>
