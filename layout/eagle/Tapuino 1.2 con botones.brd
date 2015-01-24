@@ -111,7 +111,6 @@
 <hole x="94.532" y="4.13" drill="2.8"/>
 <hole x="58.972" y="43.5" drill="2.8"/>
 <text x="11.049" y="40.64" size="0.8128" layer="25">(c) 2015 spcbm &amp; sweetlilmre</text>
-<text x="20.701" y="37.846" size="0.8128" layer="25">www.spcbm.com</text>
 <text x="20.701" y="39.116" size="0.8128" layer="25">www.sweetlilmre.com</text>
 </plain>
 <libraries>
