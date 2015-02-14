@@ -69,5 +69,4 @@
 #define KEY_PREV_PIN        1
 #define KEY_NEXT_PIN        0
 
-
 #endif
