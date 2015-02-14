@@ -60,6 +60,7 @@
 #define CONTROL_SET_BUS0()  CONTROL_PORT &= ~(_BV(CONTROL_PIN0) | _BV(CONTROL_PIN1))
 #define CONTROL_SET_BUS1()  { CONTROL_PORT &= ~_BV(CONTROL_PIN1); CONTROL_PORT |= _BV(CONTROL_PIN0); }
 
+//#define KEYS_INPUT_PULLUP // uncomment this line if you are using HW2.0
 #define KEYS_READ_PORT      PORTC
 #define KEYS_READ_DDR       DDRC
 #define KEYS_READ_PINS      PINC
