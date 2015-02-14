@@ -92,7 +92,12 @@ void input_callback()
   static unsigned char ct0, ct1, rpt;
   unsigned char i;
 
-  i = key_state ^ KEYS_READ_PINS;    // key changed ?
+  if (KEYS_INPUT_PULLUP) {
+    i = key_state ^ KEYS_READ_PINS;
+  } else  {
+    i = key_state ^ ~KEYS_READ_PINS;	// key changed ? inverted reading in case of internal pullup is used
+  }
+  
   ct0 = ~( ct0 & i );          // reset or count ct0
   ct1 = ct0 ^ (ct1 & i);       // reset or count ct1
   i &= ct0 & ct1;              // count until roll over ?
