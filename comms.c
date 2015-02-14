@@ -93,9 +93,9 @@ void input_callback()
   unsigned char i;
 
   if (KEYS_INPUT_PULLUP) {
-    i = key_state ^ KEYS_READ_PINS;
+    i = key_state ^ ~KEYS_READ_PINS;
   } else  {
-    i = key_state ^ ~KEYS_READ_PINS;	// key changed ? inverted reading in case of internal pullup is used
+    i = key_state ^ KEYS_READ_PINS;	// key changed ? inverted reading in case of internal pullup is used
   }
   
   ct0 = ~( ct0 & i );          // reset or count ct0
