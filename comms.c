@@ -92,10 +92,11 @@ void input_callback()
   static unsigned char ct0, ct1, rpt;
   unsigned char i;
 
-#ifdef KEYS_INPUT_PULLUP  		// key changed ?
-i = key_state ^ ~KEYS_READ_PINS;	// for internal pullup the reading is inverted
+  // key changed ?
+#ifdef KEYS_INPUT_PULLUP
+  i = key_state ^ ~KEYS_READ_PINS;  // HW V2.0 for internal pullup the reading is inverted
 #else  
-i = key_state ^ KEYS_READ_PINS;
+  i = key_state ^ KEYS_READ_PINS;   // HW V1.0 normal read
 #endif 
 
   ct0 = ~( ct0 & i );          // reset or count ct0

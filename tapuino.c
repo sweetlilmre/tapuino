@@ -320,7 +320,10 @@ int play_file(FILINFO* pfile_info)
 
   // end of load UI indicator
   lcd_busy_spinner();
-
+  
+  // prevent leakage of g_cur_command, the standard mechanism is to use get_cur_command() which would clear the global
+  g_cur_command = COMMAND_IDLE;
+  
   return 1;
 }
 
