@@ -137,8 +137,6 @@ void handle_play_mode(FILINFO* pfile_info) {
           // back to main menu if not in playng mode 
           if (g_file_busy) {
             g_file_busy = 0;
-            get_file_at_index(pfile_info, g_cur_file_index);
-            display_filename(pfile_info);
           } else {
             return;
           }
