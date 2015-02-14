@@ -28,6 +28,7 @@
 
 int g_num_files = 0;
 int g_cur_file_index = 0;
+uint8_t g_file_busy = 0;
 
 uint8_t get_cur_command() {
 // this order of operations is very important
@@ -115,6 +116,7 @@ void handle_play_mode(FILINFO* pfile_info) {
         } else {
           display_filename(pfile_info);
           play_file(pfile_info);
+          g_file_busy = 1;
           lcd_title_P(S_SELECT_FILE);
           // buffer is used so get the file again
           get_file_at_index(pfile_info, g_cur_file_index);
@@ -122,7 +124,7 @@ void handle_play_mode(FILINFO* pfile_info) {
         }
       break;
       case COMMAND_ABORT:
-        if (g_fs.cdir != 0) {
+        if (g_fs.cdir != 0 && !g_file_busy) {
           if (change_dir("..") == FR_OK) {
             g_num_files = get_num_files(pfile_info);
             g_cur_file_index = 0;
@@ -132,8 +134,12 @@ void handle_play_mode(FILINFO* pfile_info) {
             lcd_status_P(S_CHDIR_FAILED);
           }        
         } else {
-          // back to main menu
-          return;
+          // back to main menu if not in playng mode 
+          if (g_file_busy) {
+            g_file_busy = 0;
+          } else {
+            return;
+          }
         }
       break;
       case COMMAND_NEXT:
