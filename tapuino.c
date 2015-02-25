@@ -53,6 +53,11 @@ static volatile uint32_t g_overflow;            // write signal overflow timer d
 static volatile uint32_t g_timer_tick = 0;      // timer tick at 100Hz (10 ms interval)
 
 volatile uint8_t g_invert_signal = 0;           // invert the signal for transmission/reception to/from a real Datasette
+static uint8_t g_tap_format = 1;                // TAP file format version:
+                                                // Version 0: 8-bit data, 0x00 indicates overflow
+                                                //         1: 8-bit, 0x00 indicates 24-bit overflow to follow
+                                                //         2: same as 1 but with 2 half-wave values
+
 volatile uint16_t g_ticker_rate = TICKER_RATE / 10;
 volatile uint16_t g_ticker_hold_rate = TICKER_HOLD / 10;
 volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
@@ -150,11 +155,16 @@ ISR(TIMER1_COMPA_vect) {
       tap_data = (unsigned long) g_fat_buffer[g_read_index++];
       g_tap_file_pos++;
       if (tap_data == 0) {
-        g_pulse_length =  (unsigned long) g_fat_buffer[g_read_index++];
-        g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
-        g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
-        g_pulse_length *= CYCLE_MULT_RAW;
-        g_tap_file_pos += 3;
+        // code for format 0 handling
+        if (g_tap_format == 0) { 
+          g_pulse_length = 256 * CYCLE_MULT_8;
+        } else {
+          g_pulse_length =  (unsigned long) g_fat_buffer[g_read_index++];
+          g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
+          g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
+          g_pulse_length *= CYCLE_MULT_RAW;
+          g_tap_file_pos += 3;
+        }
       } else {
         g_pulse_length = tap_data * CYCLE_MULT_8;
       }
@@ -243,6 +253,8 @@ int play_file(FILINFO* pfile_info)
     lcd_title_P(S_INVALID_TAP);
     return 0;
   }
+  
+  g_tap_format = (uint8_t) g_fat_buffer[12];
   
   g_write_index = 0;
   g_read_index = 20; // Skip header
@@ -439,8 +451,12 @@ void record_file(char* pfile_name) {
     lcd_title_P(S_OPERATION_COMPLETE);
   }
 
+  // prevent leakage of g_cur_command, the standard mechanism is to use get_cur_command() which would clear the global
+  g_cur_command = COMMAND_IDLE;
+
   // end of load UI indicator
   lcd_busy_spinner();
+  
 }
 
 /*
