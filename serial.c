@@ -2,7 +2,10 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include <avr/pgmspace.h>
+#include "config.h"
 #include "buffer.h"
+
+#ifdef ENABLE_SERIAL
 
 #define USART_BAUDRATE 57600
 #define BAUD_PRESCALE (((F_CPU / (USART_BAUDRATE * 16UL))) - 1)
@@ -98,3 +101,6 @@ ISR(USART_UDRE_vect)
     UDR0 = RingBuffer_Remove( &comms_tx_buffer );
   }
 }
+
+#endif //ENABLE_SERIAL
+

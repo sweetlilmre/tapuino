@@ -31,6 +31,14 @@
   #define CYCLE_MULT_8      8.12  // (CYCLE_MULT_RAW * 8)
 #endif
 
+struct TAP_HEADER {
+  uint8_t magic[12];
+  uint8_t version;
+  uint8_t platform;
+  uint8_t video;
+  uint8_t reserved;
+  uint32_t length;
+};
 
 // the maximum TAP delay is a 24-bit value i.e. 0xFFFFFF cycles
 // we need this constant to determine if the loader has switched off the motor before the tap has completed
