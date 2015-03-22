@@ -8,7 +8,7 @@
 #include "memstrings.h"
 #include "fileutils.h"
 #include "tapuino.h"
-#include "lcd.h"
+#include "lcd_interface.h"
 #include "lcdutils.h"
 
 #define MODE_PLAY         0

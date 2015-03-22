@@ -6,7 +6,7 @@
 #include "tapuino.h"
 #include "ff.h"
 #include "config.h"
-#include "lcd.h"
+#include "lcd_interface.h"
 #include "lcdutils.h"
 #include "memstrings.h"
 
@@ -155,7 +155,7 @@ void lcd_status_P(const char* msg) {
 }
 
 void lcd_setup() {
-  lcd_begin(LCD_I2C_ADDR, MAX_LCD_LINE_LEN, LCD_NUM_LINES, LCD_5x8DOTS);
+  lcd_init(LCD_I2C_ADDR);
   lcd_backlight();
   // can't define this as the zeroth character as zero is null in strings :)! :)
   lcd_createChar(1, backslashChar);

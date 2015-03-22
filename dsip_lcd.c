@@ -6,12 +6,59 @@
 //Compatible with the Arduino IDE 1.0
 //Library version:1.1
 
+
+#include "config.h"
+#ifdef LCD_USE_1602_LCD_MODULE
+
+#include "lcd_interface.h"
+
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 
-#include "config.h"
 #include "i2cmaster.h"
-#include "lcd.h"
+
+// commands
+#define LCD_CLEARDISPLAY 0x01
+#define LCD_RETURNHOME 0x02
+#define LCD_ENTRYMODESET 0x04
+#define LCD_DISPLAYCONTROL 0x08
+#define LCD_CURSORSHIFT 0x10
+#define LCD_FUNCTIONSET 0x20
+#define LCD_SETCGRAMADDR 0x40
+#define LCD_SETDDRAMADDR 0x80
+
+// flags for display entry mode
+#define LCD_ENTRYRIGHT 0x00
+#define LCD_ENTRYLEFT 0x02
+#define LCD_ENTRYSHIFTINCREMENT 0x01
+#define LCD_ENTRYSHIFTDECREMENT 0x00
+
+// flags for display on/off control
+#define LCD_DISPLAYON 0x04
+#define LCD_DISPLAYOFF 0x00
+#define LCD_CURSORON 0x02
+#define LCD_CURSOROFF 0x00
+#define LCD_BLINKON 0x01
+#define LCD_BLINKOFF 0x00
+
+// flags for display/cursor shift
+#define LCD_DISPLAYMOVE 0x08
+#define LCD_CURSORMOVE 0x00
+#define LCD_MOVERIGHT 0x04
+#define LCD_MOVELEFT 0x00
+
+// flags for backlight control
+#define LCD_BACKLIGHT     _BV(LCD_BIT_BACKLIGHT)
+#define LCD_NOBACKLIGHT   0x00
+
+// flags for function set
+#define LCD_8BITMODE 0x10
+#define LCD_4BITMODE 0x00
+#define LCD_2LINE 0x08
+#define LCD_1LINE 0x00
+#define LCD_5x10DOTS 0x04
+#define LCD_5x8DOTS 0x00
+
 
 // When the display powers up, it is configured as follows:
 //
@@ -41,7 +88,6 @@ uint8_t _cols;
 uint8_t _rows;
 uint8_t _backlightval;
 
-  
 void send(uint8_t value, uint8_t mode);
 void write4bits(uint8_t value, uint8_t mode);
 void expanderWrite(uint8_t _data);
@@ -51,10 +97,14 @@ void lcd_write(uint8_t value) {
 	send(value, _BV(LCD_BIT_RS));
 }
 
-/*********** mid level commands, for sending data/cmds */
+// mid level commands, for sending data/cmds 
 
 void command(uint8_t value) {
 	send(value, 0);
+}
+
+void lcd_init(uint8_t lcd_addr) {
+  lcd_begin(lcd_addr, MAX_LCD_LINE_LEN, LCD_NUM_LINES, LCD_5x8DOTS);
 }
 
 void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize) {
@@ -104,7 +154,6 @@ void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize) {
    // finally, set to 4-bit interface
    write4bits(0x02, 0); 
 
-
 	// set # lines, font size, etc.
 	command(LCD_FUNCTIONSET | _displayfunction);  
 	
@@ -125,7 +174,7 @@ void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize) {
 
 }
 
-/********** high level commands, for the user! */
+// high level commands, for the user!
 void lcd_clear(){
 	command(LCD_CLEARDISPLAY);// clear display, set cursor position to zero
 	_delay_us(2000);  // this command takes a long time!
@@ -164,48 +213,6 @@ void lcd_cursor() {
 	command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
 
-// Turn on and off the blinking cursor
-void lcd_noBlink() {
-	_displaycontrol &= ~LCD_BLINKON;
-	command(LCD_DISPLAYCONTROL | _displaycontrol);
-}
-void lcd_blink() {
-	_displaycontrol |= LCD_BLINKON;
-	command(LCD_DISPLAYCONTROL | _displaycontrol);
-}
-
-// These commands scroll the display without changing the RAM
-void lcd_scrollDisplayLeft(void) {
-	command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVELEFT);
-}
-void lcd_scrollDisplayRight(void) {
-	command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVERIGHT);
-}
-
-// This is for text that flows Left to Right
-void lcd_leftToRight(void) {
-	_displaymode |= LCD_ENTRYLEFT;
-	command(LCD_ENTRYMODESET | _displaymode);
-}
-
-// This is for text that flows Right to Left
-void lcd_rightToLeft(void) {
-	_displaymode &= ~LCD_ENTRYLEFT;
-	command(LCD_ENTRYMODESET | _displaymode);
-}
-
-// This will 'right justify' text from the cursor
-void lcd_autoscroll(void) {
-	_displaymode |= LCD_ENTRYSHIFTINCREMENT;
-	command(LCD_ENTRYMODESET | _displaymode);
-}
-
-// This will 'left justify' text from the cursor
-void lcd_noAutoscroll(void) {
-	_displaymode &= ~LCD_ENTRYSHIFTINCREMENT;
-	command(LCD_ENTRYMODESET | _displaymode);
-}
-
 // Allows us to fill the first 8 CGRAM locations
 // with custom characters
 void lcd_createChar(uint8_t location, uint8_t charmap[]) {
@@ -235,14 +242,7 @@ void lcd_print(char* msg) {
   }
 }
 
-void lcd_print_P(const char *msg) {
-    uint8_t v;
-    while ((v = pgm_read_byte(msg++))) {
-        lcd_write(v);
-    }
-}
-
-/************ low level data pushing commands **********/
+// low level data pushing commands
 
 // write either command or data
 void send(uint8_t value, uint8_t mode) {
@@ -277,3 +277,5 @@ void pulseEnable(uint8_t _data){
 	expanderWrite(_data & ~_BV(LCD_BIT_EN));	// En low
 	_delay_us(50);		// commands need > 37us to settle
 } 
+
+#endif

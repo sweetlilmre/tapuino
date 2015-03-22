@@ -4,7 +4,13 @@
 
 // LCD Definitions
 // I2C config and expander data lines
-#define LCD_I2C_ADDR        0x27 // I2C address for the LCD 
+//#define LCD_USE_1602_LCD_MODULE
+//#define LCD_I2C_ADDR        0x27 // I2C address for the LCD 
+
+#define LCD_USE_SD131X_OLED_MODULE
+#define LCD_I2C_ADDR        0x3C // I2C address for the OLED 
+
+
 #define LCD_BIT_RS          0    // Register select
 #define LCD_BIT_RW          1    // Read / Write 
 #define LCD_BIT_EN          2    // Enable

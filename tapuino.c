@@ -16,7 +16,7 @@
 #include "diskio.h"
 #include "serial.h"
 #include "comms.h"
-#include "lcd.h"
+#include "lcd_interface.h"
 #include "lcdutils.h"
 #include "memstrings.h"
 #include "fileutils.h"
