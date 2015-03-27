@@ -570,6 +570,18 @@ int tapuino_hardware_setup(void)
   
   if (res == FR_OK) {
     SPI_Speed_Fast();
+    // attempt to open the recording dir
+    strcpy_P((char*)g_fat_buffer, S_DEFAULT_RECORD_DIR);
+    res = f_opendir(&g_dir, (char*)g_fat_buffer);
+    if (res != FR_OK) { // try to make it if its not there
+      res = f_mkdir((char*)g_fat_buffer);
+      if (res != FR_OK || f_opendir(&g_dir, (char*)g_fat_buffer) != FR_OK) {
+        lcd_title_P(S_INIT_FAILED);
+        lcd_status_P(S_MKDIR_FAILED);
+        lcd_busy_spinner();
+        return 0;
+      }
+    }
     res = f_opendir(&g_dir, "/");
   } else {
     lcd_title_P(S_INIT_FAILED);
