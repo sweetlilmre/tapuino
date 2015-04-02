@@ -283,8 +283,6 @@ int play_file(FILINFO* pfile_info)
   while (br > 0) {
     // Wait until ISR is in the new half of the buffer
     while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
-      // process input for abort
-      //input_callback();
       // feedback to the user
       lcd_spinner(g_timer_tick, perc);
 
@@ -305,13 +303,10 @@ int play_file(FILINFO* pfile_info)
     f_read(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
     g_write_index += 128;
     perc = (g_tap_file_pos * 100) / g_tap_file_len;
-    //input_callback();
   }
 
   // wait for the remaining buffer to be read.
   while (!g_tap_file_complete) {
-    // process input for abort
-    //input_callback();
     // feedback to the user
     lcd_spinner(g_timer_tick, perc);
     // we need to do the same trick as above, BC's Quest for Tires stops the motor right near the
@@ -397,7 +392,6 @@ void record_file(char* pfile_name) {
   
   SENSE_ON();
   while (MOTOR_IS_OFF()) {
-    //input_callback();
     if (g_cur_command == COMMAND_ABORT) {
       break;
     }
@@ -420,8 +414,6 @@ void record_file(char* pfile_name) {
       } else { // reset here while the motor is on so that we have the most current count
         tmp = g_timer_tick;
       }
-      // process input for abort
-      //input_callback();
       // feedback to the user
       lcd_spinner(g_timer_tick, -1);
       if ((g_cur_command == COMMAND_ABORT)) {
