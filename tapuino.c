@@ -31,14 +31,25 @@
   #define CYCLE_MULT_8      8.12  // (CYCLE_MULT_RAW * 8)
 #endif
 
-struct TAP_HEADER {
-  uint8_t magic[12];
-  uint8_t version;
+// magic strings found in the TAP header, represented as uint32_t values in little endian format (reversed string)
+#define TAP_MAGIC_C64      0x2D343643   // "C64-"  as "-46C"
+#define TAP_MAGIC_C16      0x2D363143   // "C16-"  as "-61C"
+#define TAP_MAGIC_POSTFIX1 0x45504154   // "TAPE"  as "EPAT"
+#define TAP_MAGIC_POSTFIX2 0x5741522D   // "-RAW"  as "WAR-"
+
+struct TAP_INFO {
+  uint8_t version;              // TAP file format version:
+                                // Version 0: 8-bit data, 0x00 indicates overflow
+                                //         1: 8-bit, 0x00 indicates 24-bit overflow to follow
+                                //         2: same as 1 but with 2 half-wave values
   uint8_t platform;
   uint8_t video;
   uint8_t reserved;
-  uint32_t length;
+  volatile uint32_t length;     // total length of the TAP data excluding header in bytes
+  volatile uint32_t cycles;     // 
 };
+
+static struct TAP_INFO g_tap_info;
 
 // the maximum TAP delay is a 24-bit value i.e. 0xFFFFFF cycles
 // we need this constant to determine if the loader has switched off the motor before the tap has completed
@@ -54,17 +65,12 @@ static volatile uint8_t g_signal_2nd_half;      // dual use flag: flag to indica
 static volatile uint32_t g_total_timer_count;   // number of (AVR) cycles that the timer has been running for
 static volatile uint8_t g_tap_file_complete;    // flag to indicate that all bytes have been read from the TAP
 static volatile uint32_t g_tap_file_pos;        // current read position in the TAP (bytes)
-static volatile uint32_t g_tap_file_len;        // total length of the TAP  (bytes)
 static uint32_t g_pulse_length = 0;             // length of pulse in uS
 static uint32_t g_pulse_length_save;            // save length for read
 static volatile uint32_t g_overflow;            // write signal overflow timer detection
 static volatile uint32_t g_timer_tick = 0;      // timer tick at 100Hz (10 ms interval)
 
 volatile uint8_t g_invert_signal = 0;           // invert the signal for transmission/reception to/from a real Datasette
-static uint8_t g_tap_format = 1;                // TAP file format version:
-                                                // Version 0: 8-bit data, 0x00 indicates overflow
-                                                //         1: 8-bit, 0x00 indicates 24-bit overflow to follow
-                                                //         2: same as 1 but with 2 half-wave values
 
 volatile uint16_t g_ticker_rate = TICKER_RATE / 10;
 volatile uint16_t g_ticker_hold_rate = TICKER_HOLD / 10;
@@ -156,7 +162,7 @@ ISR(TIMER1_COMPA_vect) {
       }
     } else {
       g_total_timer_count = 0;
-      if (g_tap_file_pos >= g_tap_file_len) {
+      if (g_tap_file_pos >= g_tap_info.length) {
         g_tap_file_complete = 1;
         return;                           // reached the end of the TAP file so don't process any more!
       }
@@ -164,7 +170,7 @@ ISR(TIMER1_COMPA_vect) {
       g_tap_file_pos++;
       if (tap_data == 0) {
         // code for format 0 handling
-        if (g_tap_format == 0) { 
+        if (g_tap_info.version == 0) { 
           g_pulse_length = 256 * CYCLE_MULT_8;
         } else {
           g_pulse_length =  (unsigned long) g_fat_buffer[g_read_index++];
@@ -236,14 +242,11 @@ void signal_timer_stop() {
   TIMSK1 = 0;
 }
 
-int play_file(FILINFO* pfile_info)
-{
+int verify_tap(FILINFO* pfile_info) {
   FRESULT res;
   UINT br;
-  int perc = 0;
-  g_tap_file_complete = 0;
-  g_tap_file_pos = 0;
-  g_tap_file_len = pfile_info->fsize;
+
+  memset(&g_tap_info, 0, sizeof(g_tap_info));
 
   res = f_open(&g_fil, pfile_info->fname, FA_READ);
   if (res != FR_OK) {
@@ -251,22 +254,64 @@ int play_file(FILINFO* pfile_info)
     return 0;
   }
 
-  res = f_read(&g_fil, (void*) g_fat_buffer, FAT_BUF_SIZE, &br);
+  res = f_read(&g_fil, (void*) g_fat_buffer, 12, &br);
   if (res != FR_OK) {
     lcd_title_P(S_READ_FAILED);
     return 0;
   }
 
-  if (strncmp_P((const char*) g_fat_buffer, S_TAP_MAGIC_C64, 12) != 0) {
+  res = f_read(&g_fil, (void*) &g_tap_info, 8, &br);
+  if (res != FR_OK) {
+    lcd_title_P(S_READ_FAILED);
+    return 0;
+  }
+
+  // check size first
+  if (g_tap_info.length != (pfile_info->fsize - 20)) {
     lcd_title_P(S_INVALID_TAP);
     return 0;
   }
   
-  g_tap_format = (uint8_t) g_fat_buffer[12];
+  uint32_t* tap_magic = (uint32_t*) g_fat_buffer;
+
+  // check the post fix for "TAPE-RAW", use a 4-byte magic trick
+  if (tap_magic[1] != TAP_MAGIC_POSTFIX1 || tap_magic[2] != TAP_MAGIC_POSTFIX2) {
+    lcd_title_P(S_INVALID_TAP);
+    return 0;
+  }
   
+  // now check type: C16 or C64, use a 4-byte magic trick
+  if (tap_magic[0] != TAP_MAGIC_C64 && tap_magic[0] != TAP_MAGIC_C16 ) {
+    lcd_title_P(S_INVALID_TAP);
+    return 0;
+  }
+
+  // get the first buffer ready
+  res = f_read(&g_fil, (void*) g_fat_buffer, FAT_BUF_SIZE, &br);
+  if (res != FR_OK) {
+    lcd_title_P(S_READ_FAILED);
+    return 0;
+  }  
+
+  return 1;
+}
+
+int play_file(FILINFO* pfile_info)
+{
+  FRESULT res;
+  UINT br;
+  int perc = 0;
+  g_tap_file_complete = 0;
+  
+  if (!verify_tap(pfile_info)) {
+    lcd_busy_spinner();
+    return 0;
+  }
+
+  // setup all start conditions
   g_write_index = 0;
-  g_read_index = 20; // Skip header
-  g_tap_file_pos = 20;
+  g_read_index = 0;
+  g_tap_file_pos = 0;
   g_signal_2nd_half = 0;
 
   lcd_title_P(S_LOADING);
@@ -302,7 +347,7 @@ int play_file(FILINFO* pfile_info)
     
     f_read(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
     g_write_index += 128;
-    perc = (g_tap_file_pos * 100) / g_tap_file_len;
+    perc = (g_tap_file_pos * 100) / g_tap_info.length;
   }
 
   // wait for the remaining buffer to be read.
@@ -349,7 +394,6 @@ void record_file(char* pfile_name) {
   uint32_t tmp = 0;
   g_tap_file_complete = 0;
   g_tap_file_pos = 0;
-  g_tap_file_len = 0;
 
   if (pfile_name == NULL) {
     // generate a filename
@@ -378,9 +422,11 @@ void record_file(char* pfile_name) {
   
   // write TAP header
   memset (g_fat_buffer, 0, sizeof(g_fat_buffer));   // clear it all out
-  strcpy_P((char*)g_fat_buffer, S_TAP_MAGIC_C64);   // copy the magic to the buffer
-  tmp = strlen((char*)g_fat_buffer);                // get to the end of the magic
-  g_fat_buffer[tmp] = 0x01;                         // set TAP format to 1
+  uint32_t* buffer_magic = (uint32_t*) g_fat_buffer;
+  buffer_magic[0] = TAP_MAGIC_C64;                  // copy the magic to the buffer: "C64-"
+  buffer_magic[1] = TAP_MAGIC_POSTFIX1;             // copy the magic to the buffer: "TAPE"
+  buffer_magic[2] = TAP_MAGIC_POSTFIX2;             // copy the magic to the buffer: "-RAW"
+  g_fat_buffer[12] = 0x01;                          // get to the end of the magic and set TAP format to 1
   f_write(&g_fil, (void*)g_fat_buffer, 20, &br);    // write out the header with zero length field
   memset (g_fat_buffer, 0, sizeof(g_fat_buffer));   // clear it all out again for the read / write operation
 

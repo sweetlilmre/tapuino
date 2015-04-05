@@ -40,6 +40,5 @@ extern const char S_INVALID_TAP[];
 extern const char S_LOADING[];
 extern const char S_OPERATION_COMPLETE[];
 extern const char S_OPERATION_ABORTED[];
-extern const char S_TAP_MAGIC_C64[];
 
 #endif
