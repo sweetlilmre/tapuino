@@ -92,6 +92,10 @@ void send(uint8_t value, uint8_t mode);
 void write4bits(uint8_t value, uint8_t mode);
 void expanderWrite(uint8_t _data);
 void pulseEnable(uint8_t _data);
+void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize);
+void lcd_display();
+void lcd_clear();
+void lcd_home();
 
 void lcd_write(uint8_t value) {
 	send(value, _BV(LCD_BIT_RS));
@@ -171,21 +175,20 @@ void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize) {
 	command(LCD_ENTRYMODESET | _displaymode);
 
 	lcd_home();
-
 }
 
 // high level commands, for the user!
-void lcd_clear(){
+void lcd_clear() {
 	command(LCD_CLEARDISPLAY);// clear display, set cursor position to zero
 	_delay_us(2000);  // this command takes a long time!
 }
 
-void lcd_home(){
+void lcd_home() {
 	command(LCD_RETURNHOME);  // set cursor position to zero
 	_delay_us(2000);  // this command takes a long time!
 }
 
-void lcd_setCursor(uint8_t col, uint8_t row){
+void lcd_setCursor(uint8_t col, uint8_t row) {
 	int row_offsets[] = { 0x00, 0x40, 0x14, 0x54 };
 	if ( row > _numlines ) {
 		row = _numlines - 1;    // we count rows starting w/0
@@ -198,6 +201,7 @@ void lcd_noDisplay() {
 	_displaycontrol &= ~LCD_DISPLAYON;
 	command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
+
 void lcd_display() {
 	_displaycontrol |= LCD_DISPLAYON;
 	command(LCD_DISPLAYCONTROL | _displaycontrol);

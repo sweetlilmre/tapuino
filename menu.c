@@ -247,7 +247,6 @@ uint8_t handle_manual_filename(FILINFO* pfile_info) {
 
 void handle_record_mode(FILINFO* pfile_info) {
   const char* ppitems[] = {S_REC_MODE_MANUAL, S_REC_MODE_AUTO};
-  FRESULT res;
 
   lcd_title_P(S_SELECT_RECORD_MODE);
 

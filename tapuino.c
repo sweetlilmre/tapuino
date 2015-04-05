@@ -298,7 +298,6 @@ int verify_tap(FILINFO* pfile_info) {
 
 int play_file(FILINFO* pfile_info)
 {
-  FRESULT res;
   UINT br;
   int perc = 0;
   g_tap_file_complete = 0;
