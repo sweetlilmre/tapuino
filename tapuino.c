@@ -24,12 +24,26 @@
 
 
 #ifdef USE_NTSC_TIMING
-  #define CYCLE_MULT_RAW    0.978 // (1000000 / 1022730 NTSC  cycles)
-  #define CYCLE_MULT_8      7.82  // (CYCLE_MULT_RAW * 8)
+  #define CYCLES_PER_SECOND 1022730
+  #define CYCLE_MULT_RAW    1000000.0 / CYCLES_PER_SECOND
+  #define CYCLE_MULT_8      CYCLE_MULT_RAW * 8
 #else
-  #define CYCLE_MULT_RAW    1.015 // (1000000 / 985248 PAL cycles)
-  #define CYCLE_MULT_8      8.12  // (CYCLE_MULT_RAW * 8)
+  #define CYCLES_PER_SECOND 985248
+  #define CYCLE_MULT_RAW    1000000.0 / CYCLES_PER_SECOND
+  #define CYCLE_MULT_8      CYCLE_MULT_RAW * 8.0
 #endif
+
+// as per formula and constants in vice emulator header file datasette.h
+// 
+/* Counter is c=g*(sqrt(v*t/d*pi+r^2/d^2)-r/d)
+   Some constants for the Datasette-Counter, maybe resourses in future */
+#ifndef PI
+#define PI 3.1415926535
+#endif
+#define DS_D 1.27e-5
+#define DS_R 1.07e-2
+#define DS_V_PLAY 4.76e-2
+#define DS_G 0.525 
 
 // magic strings found in the TAP header, represented as uint32_t values in little endian format (reversed string)
 #define TAP_MAGIC_C64      0x2D343643   // "C64-"  as "-46C"
@@ -46,6 +60,7 @@ struct TAP_INFO {
   uint8_t video;
   uint8_t reserved;
   volatile uint32_t length;     // total length of the TAP data excluding header in bytes
+  volatile uint32_t cycles_target;     // 
   volatile uint32_t cycles;     // 
 };
 
@@ -182,6 +197,7 @@ ISR(TIMER1_COMPA_vect) {
       } else {
         g_pulse_length = tap_data * CYCLE_MULT_8;
       }
+      g_tap_info.cycles_target += g_pulse_length;
       g_pulse_length_save = g_pulse_length;   // save this for the 2nd half of the wave
       if (g_pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
         g_pulse_length -= 0xFFFF;
@@ -201,6 +217,9 @@ ISR(TIMER1_COMPA_vect) {
 }
 
 ISR(TIMER2_COMPA_vect) {
+  if (!MOTOR_IS_OFF() && (g_tap_info.cycles < g_tap_info.cycles_target)) {
+    g_tap_info.cycles += 10000;
+  }
 	disk_timerproc();	// Drive timer procedure for FatFs low level disk I/O module
   input_callback();
   g_timer_tick++;   // system ticker for timing
@@ -337,6 +356,7 @@ int play_file(FILINFO* pfile_info)
         g_tap_file_complete = 1;
         break;
       }
+      perc = (int) (DS_G * (sqrt((g_tap_info.cycles / 1000000.0 * (DS_V_PLAY / DS_D / PI)) + ((DS_R * DS_R) / (DS_D * DS_D))) - (DS_R / DS_D)));
     }
 
     // exit outer while
@@ -346,7 +366,8 @@ int play_file(FILINFO* pfile_info)
     
     f_read(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
     g_write_index += 128;
-    perc = (g_tap_file_pos * 100) / g_tap_info.length;
+    //perc = (g_tap_file_pos * 100) / g_tap_info.length;
+
   }
 
   // wait for the remaining buffer to be read.
@@ -594,8 +615,10 @@ int tapuino_hardware_setup(void)
 //  sprintf((char*)g_fat_buffer, "%d", free_ram());
 //  serial_println((char*)g_fat_buffer);
   lcd_setup();
-//  serial_println_P(S_INITI2COK);
-  lcd_title_P(S_INIT);
+
+  strcpy_P((char*)g_fat_buffer, S_INIT);
+  strcat_P((char*)g_fat_buffer, S_VERSION);
+  lcd_title(g_fat_buffer);
   
   // something (possibly) dodgy in the bootloader causes a fail on cold boot.
   // retrying here seems to fix it (could just be the bootloader on my cheap Chinese clone?)

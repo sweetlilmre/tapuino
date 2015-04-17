@@ -38,3 +38,5 @@ const char S_INVALID_TAP[] PROGMEM = "Invalid TAP!";
 const char S_LOADING[] PROGMEM = "Loading:";
 const char S_OPERATION_COMPLETE[] PROGMEM = "Complete!";
 const char S_OPERATION_ABORTED[] PROGMEM = "Aborted!";
+
+const char S_VERSION[] PROGMEM = " v2.0";
