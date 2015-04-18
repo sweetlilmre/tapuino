@@ -122,6 +122,7 @@ ISR(TIMER1_OVF_vect){
   g_overflow++;
 }
 
+
 // timer1 is running at 2MHz or 0.5 uS per tick.
 // signal values are measured in uS, so OCR1A is set to the value from the TAP file (converted into uS) for each signal half
 // i.e. TAP value converted to uS * 2 == full signal length
@@ -168,21 +169,39 @@ ISR(TIMER1_COMPA_vect) {
       }
       tap_data = (unsigned long) g_fat_buffer[g_read_index++];
       g_tap_file_pos++;
-      if (tap_data == 0) {
-        // code for format 0 handling
-        if (g_tap_info.version == 0) { 
-          g_pulse_length = 256 * CYCLE_MULT_8;
+
+      // code for format 0 handling
+      if (g_tap_info.version == 0 && tap_data == 0) {
+        tap_data = 256;
+      }        
+      
+      if (tap_data != 0) {
+        g_pulse_length = tap_data * CYCLE_MULT_8;
+      } else {
+        g_pulse_length =  (unsigned long) g_fat_buffer[g_read_index++];
+        g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
+        g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
+        g_pulse_length *= CYCLE_MULT_RAW;
+        g_tap_file_pos += 3;
+      }
+
+      if (g_tap_info.version != 2) {
+        g_pulse_length_save = g_pulse_length;   // save this for the 2nd half of the wave
+      } else {
+        // read second half-wave for C16 / Plus4 format
+        tap_data = (unsigned long) g_fat_buffer[g_read_index++];
+        g_tap_file_pos++;
+        if (tap_data != 0) {
+          g_pulse_length_save = tap_data * CYCLE_MULT_8;
         } else {
-          g_pulse_length =  (unsigned long) g_fat_buffer[g_read_index++];
-          g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
-          g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
-          g_pulse_length *= CYCLE_MULT_RAW;
+          g_pulse_length_save =  (unsigned long) g_fat_buffer[g_read_index++];
+          g_pulse_length_save |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
+          g_pulse_length_save |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
+          g_pulse_length_save *= CYCLE_MULT_RAW;
           g_tap_file_pos += 3;
         }
-      } else {
-        g_pulse_length = tap_data * CYCLE_MULT_8;
       }
-      g_pulse_length_save = g_pulse_length;   // save this for the 2nd half of the wave
+      
       if (g_pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
         g_pulse_length -= 0xFFFF;
         OCR1A = 0xFFFF;
