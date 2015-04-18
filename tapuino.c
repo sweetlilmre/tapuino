@@ -188,7 +188,9 @@ ISR(TIMER1_COMPA_vect) {
       if (g_tap_info.version != 2) {
         g_pulse_length_save = g_pulse_length;   // save this for the 2nd half of the wave
       } else {
-        // read second half-wave for C16 / Plus4 format
+        // format 2 is half-wave and timer is running at 2Mhz so double
+        g_pulse_length <<= 1;
+        // now read second half-wave for C16 / Plus4 format
         tap_data = (unsigned long) g_fat_buffer[g_read_index++];
         g_tap_file_pos++;
         if (tap_data != 0) {
@@ -199,6 +201,8 @@ ISR(TIMER1_COMPA_vect) {
           g_pulse_length_save |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
           g_pulse_length_save *= CYCLE_MULT_RAW;
           g_tap_file_pos += 3;
+          // format 2 is half-wave and timer is running at 2Mhz so double
+          g_pulse_length_save <<= 1;
         }
       }
       
