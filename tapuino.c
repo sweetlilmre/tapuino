@@ -24,11 +24,13 @@
 
 
 #ifdef USE_NTSC_TIMING
-  #define CYCLE_MULT_RAW    0.978 // (1000000 / 1022730 NTSC  cycles)
-  #define CYCLE_MULT_8      7.82  // (CYCLE_MULT_RAW * 8)
+  #define CYCLES_PER_SECOND 1022730
+  #define CYCLE_MULT_RAW    (1000000.0 / CYCLES_PER_SECOND)
+  #define CYCLE_MULT_8      (CYCLE_MULT_RAW * 8)
 #else
-  #define CYCLE_MULT_RAW    1.015 // (1000000 / 985248 PAL cycles)
-  #define CYCLE_MULT_8      8.12  // (CYCLE_MULT_RAW * 8)
+  #define CYCLES_PER_SECOND 985248
+  #define CYCLE_MULT_RAW    (1000000.0 / CYCLES_PER_SECOND)
+  #define CYCLE_MULT_8      (CYCLE_MULT_RAW * 8.0)
 #endif
 
 // magic strings found in the TAP header, represented as uint32_t values in little endian format (reversed string)
