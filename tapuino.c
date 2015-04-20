@@ -22,14 +22,29 @@
 #include "fileutils.h"
 #include "menu.h"
 
+// thanks stack overflow 
+#if defined(MACHINE_C64) + defined(MACHINE_VIC) + defined(MACHINE_C16) != 1
+  #error Define exactly one of MACHINE_C64, MACHINE_VIC, MACHINE_C16
+#endif
+
+#ifdef MACHINE_C64
+  #define NTSC_CYCLES_PER_SECOND 1022272 
+  #define PAL_CYCLES_PER_SECOND  985248
+#elif MACHINE_VIC
+  #define NTSC_CYCLES_PER_SECOND 1022727
+  #define PAL_CYCLES_PER_SECOND  1108404
+#elif MACHINE_C16
+  #define NTSC_CYCLES_PER_SECOND 894886
+  #define PAL_CYCLES_PER_SECOND  886724
+#else
+  #error Define exactly one of MACHINE_C64, MACHINE_VIC, MACHINE_C16
+#endif
 
 #ifdef USE_NTSC_TIMING
-  #define CYCLES_PER_SECOND 1022730
-  #define CYCLE_MULT_RAW    (1000000.0 / CYCLES_PER_SECOND)
+  #define CYCLE_MULT_RAW    (1000000.0 / NTSC_CYCLES_PER_SECOND)
   #define CYCLE_MULT_8      (CYCLE_MULT_RAW * 8)
 #else
-  #define CYCLES_PER_SECOND 985248
-  #define CYCLE_MULT_RAW    (1000000.0 / CYCLES_PER_SECOND)
+  #define CYCLE_MULT_RAW    (1000000.0 / PAL_CYCLES_PER_SECOND)
   #define CYCLE_MULT_8      (CYCLE_MULT_RAW * 8.0)
 #endif
 
@@ -203,9 +218,9 @@ ISR(TIMER1_COMPA_vect) {
           g_pulse_length_save |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
           g_pulse_length_save *= CYCLE_MULT_RAW;
           g_tap_file_pos += 3;
-          // format 2 is half-wave and timer is running at 2Mhz so double
-          g_pulse_length_save <<= 1;
         }
+        // format 2 is half-wave and timer is running at 2Mhz so double
+        g_pulse_length_save <<= 1;
       }
       
       if (g_pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
@@ -293,8 +308,9 @@ int verify_tap(FILINFO* pfile_info) {
 
   // check size first
   if (g_tap_info.length != (pfile_info->fsize - 20)) {
-    lcd_title_P(S_INVALID_TAP);
-    return 0;
+    lcd_title_P(S_INVALID_SIZE);
+    g_tap_info.length = pfile_info->fsize - 20;
+    lcd_busy_spinner();
   }
   
   uint32_t* tap_magic = (uint32_t*) g_fat_buffer;

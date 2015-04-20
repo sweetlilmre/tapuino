@@ -34,6 +34,7 @@ const char S_CHDIR_FAILED[] PROGMEM = "CHDIR fail!";
 const char S_READ_FAILED[] PROGMEM = "READ fail!";
 const char S_OPEN_FAILED[] PROGMEM = "OPEN fail!";
 const char S_INVALID_TAP[] PROGMEM = "Invalid TAP!";
+const char S_INVALID_SIZE[] PROGMEM = "Invalid size!";
 
 const char S_LOADING[] PROGMEM = "Loading:";
 const char S_OPERATION_COMPLETE[] PROGMEM = "Complete!";

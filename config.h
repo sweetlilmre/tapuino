@@ -2,6 +2,13 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
+// What machine do you want to use the Tapuino with. Currently this is a build-time only option
+// The C64 and Vic 20 machines seem to be close enough that the C64 timing will work for the Vic 20
+// The C16 seems to be very much more particular, support for this machine is still in pre-alpha
+#define MACHINE_C64 1
+//#define MACHINE_VIC 1
+//#define MACHINE_C16 1
+
 // LCD Definitions
 // I2C config and expander data lines
 #define LCD_USE_1602_LCD_MODULE
