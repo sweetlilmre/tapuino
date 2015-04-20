@@ -22,7 +22,7 @@
 #include "fileutils.h"
 #include "menu.h"
 
-// thanks stack overflow 
+// thanks stack overflow: http://stackoverflow.com/questions/4301471/c-macro-to-test-if-more-than-one-defined
 #if defined(MACHINE_C64) + defined(MACHINE_VIC) + defined(MACHINE_C16) != 1
   #error Define exactly one of MACHINE_C64, MACHINE_VIC, MACHINE_C16
 #endif
