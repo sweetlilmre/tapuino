@@ -18,11 +18,13 @@
 #define REC_MODE_MANUAL   0
 #define REC_MODE_AUTO     1
 
-#define OPTION_SIGNAL       0
-#define OPTION_KEY_REPEAT   1
-#define OPTION_TICKER_SPEED 2
-#define OPTION_TICKER_HOLD  3
-#define OPTION_REC_FINALIZE 4
+#define OPTION_MACHINE_TYPE 0
+#define OPTION_VIDEO_MODE   1
+#define OPTION_SIGNAL       2
+#define OPTION_KEY_REPEAT   3
+#define OPTION_TICKER_SPEED 4
+#define OPTION_TICKER_HOLD  5
+#define OPTION_REC_FINALIZE 6
 
 #define SELECT_MODE_EXIT 0xFF
 
@@ -279,7 +281,7 @@ void handle_record_mode(FILINFO* pfile_info) {
 }
 
 
-uint8_t handle_option_value(const char* ptitle, const char* poption, uint16_t* pcur_value, uint16_t min_value, uint16_t max_value, uint16_t step_value) {
+uint8_t handle_option_value(const char* poption, uint16_t* pcur_value, uint16_t min_value, uint16_t max_value, uint16_t step_value) {
   char buffer[MAX_LCD_LINE_LEN + 1];
   int32_t cur_value = *pcur_value;
   lcd_title_P(poption);
@@ -316,16 +318,71 @@ uint8_t handle_option_value(const char* ptitle, const char* poption, uint16_t* p
   }
 }
 
+
+uint8_t handle_option_enum(const char* poption, uint16_t* pcur_value, uint16_t max_items, const char* ppitems[]) {
+  int32_t cur_value = *pcur_value;
+  lcd_title_P(poption);
+  
+  lcd_status_P(ppitems[cur_value]);
+  
+  while (1) {
+    switch(get_cur_command()) {
+      case COMMAND_SELECT:
+        *pcur_value = (uint16_t) cur_value;
+        return 1;
+      break;
+      case COMMAND_ABORT:
+        return 0;
+      break;
+      case COMMAND_NEXT:
+        cur_value++;
+        if (cur_value >= max_items) {
+          cur_value = 0;
+        }
+        lcd_status_P(ppitems[cur_value]);
+      break;
+      case COMMAND_PREVIOUS:
+        cur_value--;
+        if (cur_value < 0) {
+          cur_value = max_items - 1;
+        }
+        lcd_status_P(ppitems[cur_value]);
+      break;
+    }
+  }
+}
+
 void handle_mode_options() {
-  const char* ppitems[] = {S_OPTION_SIGNAL, S_OPTION_KEY_REPEAT, S_OPTION_TICKER_SPEED, S_OPTION_TICKER_HOLD, S_OPTION_REC_FINALIZE};
+  const char* ppitems[] = {S_OPTION_MACHINE_TYPE, S_OPTION_VIDEO_MODE, S_OPTION_SIGNAL, S_OPTION_KEY_REPEAT, S_OPTION_TICKER_SPEED, S_OPTION_TICKER_HOLD, S_OPTION_REC_FINALIZE};
   uint16_t value = 0;
   uint8_t save = 0;
   
   while (1) {
-    switch (handle_select_mode(S_MODE_OPTIONS, ppitems, 5)) {
+    switch (handle_select_mode(S_MODE_OPTIONS, ppitems, 7)) {
+      case OPTION_MACHINE_TYPE:
+      {
+        const char* ppenum[] = {S_C64, S_VIC, S_C16};
+        value = g_machine_type;
+        if (handle_option_enum(S_OPTION_MACHINE_TYPE, &value, 3, ppenum)) {
+          save = 1;
+          g_machine_type = value;
+        }
+      }
+      break;
+      case OPTION_VIDEO_MODE:
+      {
+        const char* ppenum[] = {S_PAL, S_NTSC};
+        value = g_video_mode;
+        if (handle_option_enum(S_OPTION_VIDEO_MODE, &value, 2, ppenum)) {
+          save = 1;
+          g_video_mode = value;
+        }
+      }
+      break;
+
       case OPTION_SIGNAL:
         value = g_invert_signal;
-        if (handle_option_value(S_MODE_OPTIONS, S_OPTION_SIGNAL, &value, 0, 1, 1)) {
+        if (handle_option_value(S_OPTION_SIGNAL, &value, 0, 1, 1)) {
           g_invert_signal = value;
           if (value) {
             CONTROL_SET_BUS1();
@@ -337,28 +394,28 @@ void handle_mode_options() {
       break;
       case OPTION_KEY_REPEAT:
         value = g_key_repeat_next * 10;
-        if (handle_option_value(S_MODE_OPTIONS, S_OPTION_KEY_REPEAT, &value, 50, 500, 50)) {
+        if (handle_option_value(S_OPTION_KEY_REPEAT, &value, 50, 500, 50)) {
           g_key_repeat_next = value / 10;
           save = 1;
         }
       break;
       case OPTION_TICKER_SPEED:
         value = g_ticker_rate * 10;
-        if (handle_option_value(S_MODE_OPTIONS, S_OPTION_TICKER_SPEED, &value, 50, 500, 50)) {
+        if (handle_option_value(S_OPTION_TICKER_SPEED, &value, 50, 500, 50)) {
           g_ticker_rate = value / 10;
           save = 1;
         }
       break;
       case OPTION_TICKER_HOLD:
         value = g_ticker_hold_rate * 10;
-        if (handle_option_value(S_MODE_OPTIONS, S_OPTION_TICKER_HOLD, &value, 250, 2500, 250)) {
+        if (handle_option_value(S_OPTION_TICKER_HOLD, &value, 250, 2500, 250)) {
           g_ticker_hold_rate = value / 10;
           save = 1;
         }
       break;
       case OPTION_REC_FINALIZE:
         value = g_rec_finalize_time * 10;
-        if (handle_option_value(S_MODE_OPTIONS, S_OPTION_REC_FINALIZE, &value, 500, 2500, 500)) {
+        if (handle_option_value(S_OPTION_REC_FINALIZE, &value, 500, 2500, 500)) {
           g_rec_finalize_time = value / 10;
           save = 1;
         }

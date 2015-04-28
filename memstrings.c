@@ -39,3 +39,13 @@ const char S_INVALID_SIZE[] PROGMEM = "Invalid size!";
 const char S_LOADING[] PROGMEM = "Loading:";
 const char S_OPERATION_COMPLETE[] PROGMEM = "Complete!";
 const char S_OPERATION_ABORTED[] PROGMEM = "Aborted!";
+
+
+const char S_OPTION_MACHINE_TYPE[] PROGMEM = "Machine";
+const char S_C64[] PROGMEM = "C64";
+const char S_C16[] PROGMEM = "C16";
+const char S_VIC[] PROGMEM = "VIC";
+
+extern const char S_OPTION_VIDEO_MODE[] PROGMEM = "Video";
+extern const char S_PAL[] PROGMEM = "PAL";
+extern const char S_NTSC[] PROGMEM = "NTSC";
