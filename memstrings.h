@@ -37,8 +37,19 @@ extern const char S_CHDIR_FAILED[];
 extern const char S_READ_FAILED[];
 extern const char S_OPEN_FAILED[];
 extern const char S_INVALID_TAP[];
+extern const char S_INVALID_SIZE[];
 extern const char S_LOADING[];
 extern const char S_OPERATION_COMPLETE[];
 extern const char S_OPERATION_ABORTED[];
+
+
+extern const char S_OPTION_MACHINE_TYPE[];
+extern const char S_C64[];
+extern const char S_C16[];
+extern const char S_VIC[];
+
+extern const char S_OPTION_VIDEO_MODE[];
+extern const char S_PAL[];
+extern const char S_NTSC[];
 
 #endif
