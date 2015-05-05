@@ -497,7 +497,14 @@ void record_file(char* pfile_name) {
   // write TAP header
   memset (g_fat_buffer, 0, sizeof(g_fat_buffer));   // clear it all out
   uint32_t* buffer_magic = (uint32_t*) g_fat_buffer;
-  buffer_magic[0] = TAP_MAGIC_C64;                  // copy the magic to the buffer: "C64-"
+  //set appropriate header informations for C64 or C16  
+  if (g_machine_type == C16) { 				
+	buffer_magic[0] = TAP_MAGIC_C16;
+	g_fat_buffer[13] = C16;
+  } else {
+	buffer_magic[0] = TAP_MAGIC_C64;
+	g_fat_buffer[13] = C64;
+  }
   buffer_magic[1] = TAP_MAGIC_POSTFIX1;             // copy the magic to the buffer: "TAPE"
   buffer_magic[2] = TAP_MAGIC_POSTFIX2;             // copy the magic to the buffer: "-RAW"
   g_fat_buffer[12] = 0x01;                          // get to the end of the magic and set TAP format to 1
