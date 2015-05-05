@@ -49,8 +49,8 @@ struct TAP_INFO {
                                 //          1: 8-bit, 0x00 indicates 24-bit overflow to follow
                                 //          2: same as 1 but with 2 half-wave values
   uint8_t platform;             // Platform 0: C64
-                                //          1: C16
-                                //          2: VIC
+                                //          1: VIC
+                                //          2: C16
   uint8_t video;                // Video    0: PAL 
                                 //          1: NTSC
   uint8_t reserved;
