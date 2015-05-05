@@ -22,31 +22,20 @@
 #include "fileutils.h"
 #include "menu.h"
 
-// thanks stack overflow: http://stackoverflow.com/questions/4301471/c-macro-to-test-if-more-than-one-defined
-#if defined(MACHINE_C64) + defined(MACHINE_VIC) + defined(MACHINE_C16) != 1
-  #error Define exactly one of MACHINE_C64, MACHINE_VIC, MACHINE_C16
-#endif
 
-#ifdef MACHINE_C64
-  #define NTSC_CYCLES_PER_SECOND 1022272 
-  #define PAL_CYCLES_PER_SECOND  985248
-#elif MACHINE_VIC
-  #define NTSC_CYCLES_PER_SECOND 1022727
-  #define PAL_CYCLES_PER_SECOND  1108404
-#elif MACHINE_C16
-  #define NTSC_CYCLES_PER_SECOND 894886
-  #define PAL_CYCLES_PER_SECOND  886724
-#else
-  #error Define exactly one of MACHINE_C64, MACHINE_VIC, MACHINE_C16
-#endif
+typedef enum
+{
+  C64,
+  VIC,
+  C16,
+} MACHINE_TYPE;
 
-#ifdef USE_NTSC_TIMING
-  #define CYCLE_MULT_RAW    (1000000.0 / NTSC_CYCLES_PER_SECOND)
-  #define CYCLE_MULT_8      (CYCLE_MULT_RAW * 8)
-#else
-  #define CYCLE_MULT_RAW    (1000000.0 / PAL_CYCLES_PER_SECOND)
-  #define CYCLE_MULT_8      (CYCLE_MULT_RAW * 8.0)
-#endif
+typedef enum
+{
+  PAL,
+  NSTC,
+} VIDEO_MODE;
+
 
 // magic strings found in the TAP header, represented as uint32_t values in little endian format (reversed string)
 #define TAP_MAGIC_C64      0x2D343643   // "C64-"  as "-46C"
@@ -56,11 +45,14 @@
 
 struct TAP_INFO {
   uint8_t version;              // TAP file format version:
-                                // Version 0: 8-bit data, 0x00 indicates overflow
-                                //         1: 8-bit, 0x00 indicates 24-bit overflow to follow
-                                //         2: same as 1 but with 2 half-wave values
-  uint8_t platform;
-  uint8_t video;
+                                // Version  0: 8-bit data, 0x00 indicates overflow
+                                //          1: 8-bit, 0x00 indicates 24-bit overflow to follow
+                                //          2: same as 1 but with 2 half-wave values
+  uint8_t platform;             // Platform 0: C64
+                                //          1: VIC
+                                //          2: C16
+  uint8_t video;                // Video    0: PAL 
+                                //          1: NTSC
   uint8_t reserved;
   volatile uint32_t length;     // total length of the TAP data excluding header in bytes
   volatile uint32_t cycles;     // 
@@ -72,7 +64,7 @@ static struct TAP_INFO g_tap_info;
 // we need this constant to determine if the loader has switched off the motor before the tap has completed
 // which would cause the code to enter an endless loop (when the motor is off the buffers do not progress)
 // so we check during the buffer wait loop to see if we have exceeded the maximum delay time and exit if so.
-#define MAX_SIGNAL_CYCLES     (CYCLE_MULT_RAW * 0xFFFFFF * 2)
+#define MAX_SIGNAL_CYCLES     (g_cycle_mult_raw * 0xFFFFFF * 2)
 
 // helper variables for the ISR and loader code
 
@@ -87,6 +79,11 @@ static uint32_t g_pulse_length_save;            // save length for read
 static volatile uint32_t g_overflow;            // write signal overflow timer detection
 static volatile uint32_t g_timer_tick = 0;      // timer tick at 100Hz (10 ms interval)
 
+uint8_t g_machine_type = C64;
+uint8_t g_video_mode = PAL;
+static double g_cycle_mult_raw = 0;
+static double g_cycle_mult_8 = 0;
+
 volatile uint8_t g_invert_signal = 0;           // invert the signal for transmission/reception to/from a real Datasette
 
 volatile uint16_t g_ticker_rate = TICKER_RATE / 10;
@@ -94,6 +91,39 @@ volatile uint16_t g_ticker_hold_rate = TICKER_HOLD / 10;
 volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
 volatile uint16_t g_key_repeat_next = KEY_REPEAT_NEXT / 10;
 volatile uint16_t g_rec_finalize_time = REC_FINALIZE_TIME / 10;
+
+
+void setup_cycle_timing() {
+  double ntsc_cycles_per_second;
+  double pal_cycles_per_second;
+
+  switch (g_machine_type)
+  {
+    case C64:
+      ntsc_cycles_per_second = 1022272;
+      pal_cycles_per_second  = 985248;
+    break;
+    case VIC:
+      ntsc_cycles_per_second = 1022727;
+      pal_cycles_per_second  = 1108404;
+    break;
+    case C16:
+      ntsc_cycles_per_second = 894886;
+      pal_cycles_per_second  = 886724;
+    break;
+  }
+  
+  switch(g_video_mode)
+  {
+    case PAL:
+      g_cycle_mult_raw = (1000000.0 / pal_cycles_per_second);
+    break;
+    case NSTC:
+      g_cycle_mult_raw = (1000000.0 / ntsc_cycles_per_second);
+    break;
+  }
+  g_cycle_mult_8   = (g_cycle_mult_raw * 8.0);
+}
 
 uint32_t get_timer_tick() {
   return g_timer_tick;
@@ -110,7 +140,7 @@ ISR(TIMER1_CAPT_vect) {
     // start counting here
     g_overflow = 0;
     TCNT1 = 0;
-    tap_data = g_pulse_length / CYCLE_MULT_8;         // get the standard divided value
+    tap_data = g_pulse_length / g_cycle_mult_8;         // get the standard divided value
     
     if (tap_data == 0) {                              // safe guard
       tap_data++;
@@ -119,7 +149,7 @@ ISR(TIMER1_CAPT_vect) {
       g_fat_buffer[g_read_index++] = (uint8_t) tap_data;
       g_tap_file_pos++;
     } else {                                          // long signal
-      tap_data = g_pulse_length / CYCLE_MULT_RAW;     // get the raw divided value (cycles)
+      tap_data = g_pulse_length / g_cycle_mult_raw;     // get the raw divided value (cycles)
       g_fat_buffer[g_read_index++] = 0;
       g_fat_buffer[g_read_index++] = (uint8_t) (tap_data & 0xff);
       g_fat_buffer[g_read_index++] = (uint8_t) ((tap_data & 0xff00) >> 8);
@@ -193,12 +223,12 @@ ISR(TIMER1_COMPA_vect) {
       }        
       
       if (tap_data != 0) {
-        g_pulse_length = tap_data * CYCLE_MULT_8;
+        g_pulse_length = tap_data * g_cycle_mult_8;
       } else {
         g_pulse_length =  (unsigned long) g_fat_buffer[g_read_index++];
         g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
         g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
-        g_pulse_length *= CYCLE_MULT_RAW;
+        g_pulse_length *= g_cycle_mult_raw;
         g_tap_file_pos += 3;
       }
 
@@ -211,12 +241,12 @@ ISR(TIMER1_COMPA_vect) {
         tap_data = (unsigned long) g_fat_buffer[g_read_index++];
         g_tap_file_pos++;
         if (tap_data != 0) {
-          g_pulse_length_save = tap_data * CYCLE_MULT_8;
+          g_pulse_length_save = tap_data * g_cycle_mult_8;
         } else {
           g_pulse_length_save =  (unsigned long) g_fat_buffer[g_read_index++];
           g_pulse_length_save |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
           g_pulse_length_save |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
-          g_pulse_length_save *= CYCLE_MULT_RAW;
+          g_pulse_length_save *= g_cycle_mult_raw;
           g_tap_file_pos += 3;
         }
         // format 2 is half-wave and timer is running at 2Mhz so double
@@ -343,6 +373,8 @@ int play_file(FILINFO* pfile_info)
   int perc = 0;
   g_tap_file_complete = 0;
   
+  setup_cycle_timing();
+  
   if (!verify_tap(pfile_info)) {
     lcd_busy_spinner();
     return 0;
@@ -435,6 +467,8 @@ void record_file(char* pfile_name) {
   g_tap_file_complete = 0;
   g_tap_file_pos = 0;
 
+  setup_cycle_timing();
+  
   if (pfile_name == NULL) {
     // generate a filename
     br = 0;
@@ -463,7 +497,14 @@ void record_file(char* pfile_name) {
   // write TAP header
   memset (g_fat_buffer, 0, sizeof(g_fat_buffer));   // clear it all out
   uint32_t* buffer_magic = (uint32_t*) g_fat_buffer;
-  buffer_magic[0] = TAP_MAGIC_C64;                  // copy the magic to the buffer: "C64-"
+  //set appropriate header informations for C64 or C16  
+  if (g_machine_type == C16) { 				
+	buffer_magic[0] = TAP_MAGIC_C16;
+	g_fat_buffer[13] = C16;
+  } else {
+	buffer_magic[0] = TAP_MAGIC_C64;
+	g_fat_buffer[13] = C64;
+  }
   buffer_magic[1] = TAP_MAGIC_POSTFIX1;             // copy the magic to the buffer: "TAPE"
   buffer_magic[2] = TAP_MAGIC_POSTFIX2;             // copy the magic to the buffer: "-RAW"
   g_fat_buffer[12] = 0x01;                          // get to the end of the magic and set TAP format to 1
@@ -563,24 +604,28 @@ if((uint8_t)(val) != eeprom_read_byte((loc))) \
 #endif 
 
 void load_eeprom_data() {
-  if (eeprom_read_byte((uint8_t *) 0) == 0xE7) {
-//    g_invert_signal = eeprom_read_byte((uint8_t *) 1);
-    g_ticker_rate = eeprom_read_byte((uint8_t *) 2);
-    g_ticker_hold_rate = eeprom_read_byte((uint8_t *) 3);
-    g_key_repeat_start = eeprom_read_byte((uint8_t *) 4);
-    g_key_repeat_next = eeprom_read_byte((uint8_t *) 5);
-    g_rec_finalize_time = eeprom_read_byte((uint8_t *) 6);
+  if (eeprom_read_byte((uint8_t *) 0) == 0xB6) {
+    g_machine_type = eeprom_read_byte((uint8_t *) 1);
+    g_video_mode = eeprom_read_byte((uint8_t *) 2);
+    
+    g_ticker_rate = eeprom_read_byte((uint8_t *) 3);
+    g_ticker_hold_rate = eeprom_read_byte((uint8_t *) 4);
+    g_key_repeat_start = eeprom_read_byte((uint8_t *) 5);
+    g_key_repeat_next = eeprom_read_byte((uint8_t *) 6);
+    g_rec_finalize_time = eeprom_read_byte((uint8_t *) 7);
   }
 }
 
 void save_eeprom_data() {
-  eeprom_update_byte((uint8_t *) 0, 0xE7);
-//  eeprom_update_byte((uint8_t *) 1, g_invert_signal);
-  eeprom_update_byte((uint8_t *) 2, g_ticker_rate);
-  eeprom_update_byte((uint8_t *) 3, g_ticker_hold_rate);
-  eeprom_update_byte((uint8_t *) 4, g_key_repeat_start);
-  eeprom_update_byte((uint8_t *) 5, g_key_repeat_next);
-  eeprom_update_byte((uint8_t *) 6, g_rec_finalize_time);
+  eeprom_update_byte((uint8_t *) 0, 0xB6);
+
+  eeprom_update_byte((uint8_t *) 1, g_machine_type);
+  eeprom_update_byte((uint8_t *) 2, g_video_mode);
+  eeprom_update_byte((uint8_t *) 3, g_ticker_rate);
+  eeprom_update_byte((uint8_t *) 4, g_ticker_hold_rate);
+  eeprom_update_byte((uint8_t *) 5, g_key_repeat_start);
+  eeprom_update_byte((uint8_t *) 6, g_key_repeat_next);
+  eeprom_update_byte((uint8_t *) 7, g_rec_finalize_time);
 }
 
 int tapuino_hardware_setup(void)
