@@ -2,13 +2,11 @@
 #include "memstrings.h"
 
 const char S_DEFAULT_RECORD_DIR[] PROGMEM =  "/recorded";
-const char S_NAME_PATTERN[] PROGMEM = "rec-%.4d.tap";
 const char S_RECORDING[] PROGMEM = "Recording";
 const char S_SELECT_RECORD_MODE[] PROGMEM = "Name mode:";
 const char S_REC_MODE_MANUAL[] PROGMEM = "Manual";
 const char S_REC_MODE_AUTO[] PROGMEM = "Auto";
 const char S_ENTER_FILENAME[] PROGMEM = "Enter name";
-const char S_FILENAME_CHARS[] PROGMEM = " abcdefghijklmnopqrstuvwxyz0123456789_-";
 
 const char S_INIT[] PROGMEM = "Init...";
 const char S_INIT_FAILED[] PROGMEM = "Init failed!";
@@ -42,10 +40,4 @@ const char S_OPERATION_ABORTED[] PROGMEM = "Aborted!";
 
 
 const char S_OPTION_MACHINE_TYPE[] PROGMEM = "Machine";
-const char S_C64[] PROGMEM = "C64";
-const char S_C16[] PROGMEM = "C16";
-const char S_VIC[] PROGMEM = "VIC";
-
-extern const char S_OPTION_VIDEO_MODE[] PROGMEM = "Video";
-extern const char S_PAL[] PROGMEM = "PAL";
-extern const char S_NTSC[] PROGMEM = "NTSC";
+const char S_OPTION_VIDEO_MODE[] PROGMEM = "Video";

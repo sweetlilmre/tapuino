@@ -52,4 +52,6 @@ extern const char S_OPTION_VIDEO_MODE[];
 extern const char S_PAL[];
 extern const char S_NTSC[];
 
+extern const char S_VERSION_PATTERN[];
+
 #endif

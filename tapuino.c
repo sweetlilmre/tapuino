@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "version.h"
 #include "integer.h"
 #include "config.h"
 
@@ -682,6 +683,10 @@ int tapuino_hardware_setup(void)
   lcd_setup();
 //  serial_println_P(S_INITI2COK);
   lcd_title_P(S_INIT);
+  sprintf_P((char*)g_fat_buffer, S_VERSION_PATTERN, TAPUINO_MAJOR_VERSION, TAPUINO_MINOR_VERSION, TAPUINO_BUILD_VERSION);
+  lcd_status(g_fat_buffer);
+  _delay_ms(2000);
+  
   
   // something (possibly) dodgy in the bootloader causes a fail on cold boot.
   // retrying here seems to fix it (could just be the bootloader on my cheap Chinese clone?)
