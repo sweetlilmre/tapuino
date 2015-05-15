@@ -15,7 +15,7 @@
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 
-#include "i2cmaster.h"
+#include "i2c_master.h"
 
 // commands
 #define LCD_CLEARDISPLAY 0x01
@@ -59,6 +59,17 @@
 #define LCD_5x10DOTS 0x04
 #define LCD_5x8DOTS 0x00
 
+uint8_t backslashChar[8] = {
+    0b00000,
+    0b10000,
+    0b01000,
+    0b00100,
+    0b00010,
+    0b00001,
+    0b00000,
+    0b00000
+};
+
 
 // When the display powers up, it is configured as follows:
 //
@@ -98,6 +109,8 @@ void lcd_clear();
 void lcd_home();
 
 void lcd_write(uint8_t value) {
+  // replace backslash with redefined char
+  if (value == '\\') value = 0x01;
 	send(value, _BV(LCD_BIT_RS));
 }
 
@@ -109,6 +122,8 @@ void command(uint8_t value) {
 
 void lcd_init(uint8_t lcd_addr) {
   lcd_begin(lcd_addr, MAX_LCD_LINE_LEN, LCD_NUM_LINES, LCD_5x8DOTS);
+  // can't define this as the zeroth character as zero is null in strings :)! :)
+  lcd_createChar(1, backslashChar);
 }
 
 void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize) {

@@ -20,17 +20,6 @@ static uint32_t g_last_tick = 0;
 static uint32_t g_last_hold = 0;
 static char* g_ticker_string = NULL;
 
-uint8_t backslashChar[8] = {
-    0b00000,
-    0b10000,
-    0b01000,
-    0b00100,
-    0b00010,
-    0b00001,
-    0b00000,
-    0b00000
-};
-
 void filename_ticker(FILINFO* pfile_info, uint32_t cur_tick) {
   if (g_ticker_enabled) {
     if (!g_last_tick) g_last_tick = cur_tick;
@@ -81,7 +70,7 @@ void display_filename(FILINFO* pfile_info) {
 }
 
 void lcd_spinner_internal(uint32_t cur_tick, uint8_t perc, uint16_t rate) {
-  static uint8_t indicators[] = {'|', '/', '-', 1};
+  static uint8_t indicators[] = {'|', '/', '-', '\\'};
   static uint8_t pos = 0;
   if (cur_tick - g_last_tick < rate) {
     return;
@@ -157,6 +146,4 @@ void lcd_status_P(const char* msg) {
 void lcd_setup() {
   lcd_init(LCD_I2C_ADDR);
   lcd_backlight();
-  // can't define this as the zeroth character as zero is null in strings :)! :)
-  lcd_createChar(1, backslashChar);
 }
