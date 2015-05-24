@@ -1,5 +1,8 @@
 #include <avr/pgmspace.h>
+#include "config.h"
 #include "memstrings.h"
+
+#ifdef TAPUINO_LANGUAGE_IT
 
 const char S_DEFAULT_RECORD_DIR[] PROGMEM =  "/salvataggi";
 const char S_RECORDING[] PROGMEM = "Recording";
@@ -40,3 +43,5 @@ const char S_OPERATION_ABORTED[] PROGMEM = "Annullato!";
 
 const char S_OPTION_MACHINE_TYPE[] PROGMEM = "Macchina";
 const char S_OPTION_VIDEO_MODE[] PROGMEM = "Video";
+
+#endif

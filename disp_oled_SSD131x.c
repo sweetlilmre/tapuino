@@ -1,5 +1,5 @@
 #include "config.h"
-#ifdef LCD_USE_SD131X_OLED_MODULE
+#ifdef LCD_USE_SSD131X_OLED_MODULE
 
 #include <util/delay.h>
 #include "i2cmaster.h"

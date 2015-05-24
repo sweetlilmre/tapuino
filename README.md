@@ -4,6 +4,7 @@ Tapuino
 The $20 C64 Tape Emulator
 
 Details can be found on my blog: http://www.sweetlilmre.com
+The FAQ and other docs can be found on the wiki: https://github.com/sweetlilmre/tapuino/wiki
 
 Portions of this code are copyright by their respective owners:
 
