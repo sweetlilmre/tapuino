@@ -2,16 +2,16 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
-// LCD Definitions
-// I2C config and expander data lines
-#define LCD_USE_SSD1306_OLED_MODULE
-#define LCD_I2C_ADDR        0x3C // I2C address for the OLED
+#include "config-user.h"
 
-//#define LCD_USE_1602_LCD_MODULE
-//#define LCD_I2C_ADDR        0x27 // I2C address for the LCD 
+// thanks stack overflow: http://stackoverflow.com/questions/4301471/c-macro-to-test-if-more-than-one-defined
+#if defined(LCD_USE_SSD1306_OLED_MODULE) + defined(LCD_USE_1602_LCD_MODULE) + defined(LCD_USE_SSD131X_OLED_MODULE) != 1
+  #error Ether no or multiple LCD types defined! Have you created your config-user.h file?
+#endif
 
-//#define LCD_USE_SSD131X_OLED_MODULE
-//#define LCD_I2C_ADDR        0x3C // I2C address for the OLED 
+#if defined(TAPUINO_LANGUAGE_EN) + defined(TAPUINO_LANGUAGE_IT) != 1
+  #error Either no or multiple languages defined! Have you created your config-user.h file?
+#endif
 
 
 #define LCD_BIT_RS          0    // Register select

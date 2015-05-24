@@ -107,6 +107,7 @@ void lcd_begin(uint8_t lcd_addr, uint8_t cols, uint8_t lines, uint8_t dotsize);
 void lcd_display();
 void lcd_clear();
 void lcd_home();
+void lcd_createChar(uint8_t location, uint8_t charmap[]);
 
 void lcd_write(uint8_t value) {
   // replace backslash with redefined char

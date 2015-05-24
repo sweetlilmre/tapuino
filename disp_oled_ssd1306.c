@@ -1,6 +1,7 @@
 #include "config.h"
 #ifdef LCD_USE_SSD1306_OLED_MODULE
 
+#include <string.h>
 #include <avr/pgmspace.h>
 #include "i2c_master.h"
 #include "font8x8.h"
@@ -13,6 +14,12 @@ static uint8_t _addr; // I2C address
 static uint8_t _row, _col;
 static uint8_t _buffer[NUM_CHARS];
 static uint8_t _displayCursor;
+
+void write_raw(uint8_t value, uint8_t cursor);
+void ssd1306_fillscreen(uint8_t fill);
+void ssd1306_send_command_start(void);
+void ssd1306_send_command(uint8_t command);
+void ssd1306_send_data_start(void);
 
 // Init Sequence
 const uint8_t ssd1306_init_sequence [] PROGMEM = {
@@ -144,8 +151,7 @@ void lcd_print(char *s) {
 }
 
 // ----------------------------------------------------------------------------
-void ssd1306_fillscreen(uint8_t fill)
-{
+void ssd1306_fillscreen(uint8_t fill) {
   uint8_t m, n;
   for (m = 0; m < 8; m++)
   {
@@ -167,15 +173,13 @@ void ssd1306_send_command_start(void) {
   i2c_write(0x00); // command
 }
 
-void ssd1306_send_command(uint8_t command)
-{
+void ssd1306_send_command(uint8_t command) {
   ssd1306_send_command_start();
   i2c_write(command);
   i2c_stop();
 }
 
-void ssd1306_send_data_start(void)
-{
+void ssd1306_send_data_start(void) {
   i2c_start(_addr << 1);
   i2c_write(0x40); // data
 }
