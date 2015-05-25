@@ -93,6 +93,7 @@ volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
 volatile uint16_t g_key_repeat_next = KEY_REPEAT_NEXT / 10;
 volatile uint16_t g_rec_finalize_time = REC_FINALIZE_TIME / 10;
 
+volatile uint8_t g_is_paused = 0;
 
 void setup_cycle_timing() {
   double ntsc_cycles_per_second;
@@ -181,7 +182,7 @@ ISR(TIMER1_COMPA_vect) {
   g_total_timer_count += OCR1A;
   
   // don't process if the MOTOR is off!
-  if (MOTOR_IS_OFF()) {
+  if (MOTOR_IS_OFF() || g_is_paused) {
     return;
   }
   
@@ -386,6 +387,7 @@ int play_file(FILINFO* pfile_info)
   g_read_index = 0;
   g_tap_file_pos = 0;
   g_signal_2nd_half = 0;
+  g_is_paused = 0;
 
   lcd_title_P(S_LOADING);
 
@@ -410,6 +412,10 @@ int play_file(FILINFO* pfile_info)
       if (g_tap_file_complete || (g_cur_command == COMMAND_ABORT)) {
         g_tap_file_complete = 1;
         break;
+      }
+      if (g_cur_command == COMMAND_SELECT) {
+        g_cur_command = COMMAND_IDLE;
+        g_is_paused = !g_is_paused;
       }
     }
 
