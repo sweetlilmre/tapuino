@@ -84,7 +84,7 @@ void lcd_spinner_internal(uint32_t cur_tick, uint8_t perc, uint16_t rate) {
     itoa(perc, g_char_buffer + off, 10);
     g_char_buffer[3] = '%';
   }
-  g_char_buffer[5] = MOTOR_IS_OFF() ? 'm' : 'M';
+  g_char_buffer[5] = g_is_paused ? 'P' : MOTOR_IS_OFF() ? 'm' : 'M';
   g_char_buffer[6] = indicators[pos++];
   g_char_buffer[7] = 0;
   lcd_print(g_char_buffer);
