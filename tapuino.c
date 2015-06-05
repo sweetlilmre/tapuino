@@ -498,6 +498,9 @@ void record_file(char* pfile_name) {
     lcd_busy_spinner();
     return;
   }
+  
+  REC_LED_ON();
+  
   lcd_title_P(S_RECORDING);
   lcd_status(pfile_name);
   
@@ -506,11 +509,11 @@ void record_file(char* pfile_name) {
   uint32_t* buffer_magic = (uint32_t*) g_fat_buffer;
   //set appropriate header informations for C64 or C16  
   if (g_machine_type == C16) { 				
-	buffer_magic[0] = TAP_MAGIC_C16;
-	g_fat_buffer[13] = C16;
+    buffer_magic[0] = TAP_MAGIC_C16;
+    g_fat_buffer[13] = C16;
   } else {
-	buffer_magic[0] = TAP_MAGIC_C64;
-	g_fat_buffer[13] = C64;
+    buffer_magic[0] = TAP_MAGIC_C64;
+    g_fat_buffer[13] = C64;
   }
   buffer_magic[1] = TAP_MAGIC_POSTFIX1;             // copy the magic to the buffer: "TAPE"
   buffer_magic[2] = TAP_MAGIC_POSTFIX2;             // copy the magic to the buffer: "-RAW"
@@ -590,7 +593,7 @@ void record_file(char* pfile_name) {
 
   // end of load UI indicator
   lcd_busy_spinner();
-  
+  REC_LED_OFF();
 }
 
 /*
@@ -666,6 +669,10 @@ int tapuino_hardware_setup(void)
   CONTROL_DDR |= _BV(CONTROL_PIN0) | _BV(CONTROL_PIN1);
   // default both LOW so BUS 0
   CONTROL_SET_BUS0();
+  
+  // recording led (Arduino: D2, Atmel: PD2)
+  REC_LED_DDR |= _BV(REC_LED_PIN);
+  REC_LED_OFF();
   
   // keys are all inputs, activate pullups
   KEYS_READ_DDR &= ~_BV(KEY_SELECT_PIN);
