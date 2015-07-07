@@ -70,6 +70,12 @@
 #define CONTROL_SET_BUS0()  CONTROL_PORT &= ~(_BV(CONTROL_PIN0) | _BV(CONTROL_PIN1))
 #define CONTROL_SET_BUS1()  { CONTROL_PORT &= ~_BV(CONTROL_PIN1); CONTROL_PORT |= _BV(CONTROL_PIN0); }
 
+#define REC_LED_PORT        PORTD
+#define REC_LED_DDR         DDRD
+#define REC_LED_PIN         2
+#define REC_LED_OFF()       REC_LED_PORT |= _BV(REC_LED_PIN)
+#define REC_LED_ON()        REC_LED_PORT &= ~_BV(REC_LED_PIN)
+
  // comment this line if you are using HW1.0
 #define KEYS_INPUT_PULLUP
 #define KEYS_READ_PORT      PORTC
