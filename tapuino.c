@@ -589,7 +589,7 @@ void record_file(char* pfile_name) {
   f_write(&g_fil, (void*) &g_tap_file_pos, 4, &br);
   f_close(&g_fil);
   
-  if (g_cur_command == COMMAND_ABORT) {
+  if ((g_cur_command == COMMAND_ABORT) && !g_rec_auto_finalize) {
     lcd_title_P(S_OPERATION_ABORTED);
   } else {
     lcd_title_P(S_OPERATION_COMPLETE);
