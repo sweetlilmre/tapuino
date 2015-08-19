@@ -175,7 +175,9 @@ ISR(TIMER1_CAPT_vect) {
 }
 
 ISR(TIMER1_OVF_vect){
-  g_overflow++;
+  if (!MOTOR_IS_OFF()) {
+    g_overflow++;
+  }
 }
 
 

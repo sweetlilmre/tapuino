@@ -465,6 +465,9 @@ void main_menu(FILINFO* pfile_info) {
       case MODE_OPTIONS:
         handle_mode_options();
       break;
+      case SELECT_MODE_EXIT:
+        cur_mode = 0;
+      break;
     }
   }
 }
