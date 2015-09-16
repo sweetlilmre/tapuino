@@ -14,6 +14,7 @@ extern volatile uint8_t g_ticker_rate;
 extern volatile uint8_t g_ticker_hold_rate;
 extern volatile uint8_t g_key_repeat_next;
 extern volatile uint8_t g_rec_finalize_time;
+extern volatile uint8_t g_rec_auto_finalize;
 extern uint8_t g_machine_type;
 extern uint8_t g_video_mode;
 extern volatile uint8_t g_is_paused;

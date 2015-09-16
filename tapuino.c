@@ -87,11 +87,18 @@ static double g_cycle_mult_8 = 0;
 
 volatile uint8_t g_invert_signal = 0;           // invert the signal for transmission/reception to/from a real Datasette
 
+// all rate values are stored as milliseconds / 10.
+// the global ticker runs at 100Hz which then maps 1-1 with these values
+// So e.g. the key read function in comms.c: input_callback() is called by the global 100Hz timer, in this function g_key_repeat_next is used to determine the time between key repeats.
+// each time this value is decremented 10 ms have passed, so a value of  100 is 100*10 is 1000 ms or 1 second repeat.
+
 volatile uint16_t g_ticker_rate = TICKER_RATE / 10;
 volatile uint16_t g_ticker_hold_rate = TICKER_HOLD / 10;
 volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
 volatile uint16_t g_key_repeat_next = KEY_REPEAT_NEXT / 10;
 volatile uint16_t g_rec_finalize_time = REC_FINALIZE_TIME / 10;
+
+volatile uint8_t g_rec_auto_finalize = 1;
 
 volatile uint8_t g_is_paused = 0;
 
@@ -168,7 +175,9 @@ ISR(TIMER1_CAPT_vect) {
 }
 
 ISR(TIMER1_OVF_vect){
-  g_overflow++;
+  if (!MOTOR_IS_OFF()) {
+    g_overflow++;
+  }
 }
 
 
@@ -542,7 +551,7 @@ void record_file(char* pfile_name) {
   while (!g_tap_file_complete) {
     while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
       // nasty bit of code to wait after the motor is shut off to finalise the TAP
-      if (MOTOR_IS_OFF()) {
+      if (MOTOR_IS_OFF() && g_rec_auto_finalize) {
         // use the 100Hz timer to wait some time after the motor has shut off
         if ((g_timer_tick - tmp) > (uint32_t) g_rec_finalize_time) {
           g_tap_file_complete = 1;
@@ -582,7 +591,7 @@ void record_file(char* pfile_name) {
   f_write(&g_fil, (void*) &g_tap_file_pos, 4, &br);
   f_close(&g_fil);
   
-  if (g_cur_command == COMMAND_ABORT) {
+  if ((g_cur_command == COMMAND_ABORT) && !g_rec_auto_finalize) {
     lcd_title_P(S_OPERATION_ABORTED);
   } else {
     lcd_title_P(S_OPERATION_COMPLETE);
@@ -623,6 +632,7 @@ void load_eeprom_data() {
     g_key_repeat_start = eeprom_read_byte((uint8_t *) 5);
     g_key_repeat_next = eeprom_read_byte((uint8_t *) 6);
     g_rec_finalize_time = eeprom_read_byte((uint8_t *) 7);
+    g_rec_auto_finalize = eeprom_read_byte((uint8_t *) 8);
   }
 }
 
@@ -636,6 +646,7 @@ void save_eeprom_data() {
   eeprom_update_byte((uint8_t *) 5, g_key_repeat_start);
   eeprom_update_byte((uint8_t *) 6, g_key_repeat_next);
   eeprom_update_byte((uint8_t *) 7, g_rec_finalize_time);
+  eeprom_update_byte((uint8_t *) 8, g_rec_auto_finalize);
 }
 
 int tapuino_hardware_setup(void)

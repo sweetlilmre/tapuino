@@ -25,6 +25,7 @@
 #define OPTION_TICKER_SPEED 4
 #define OPTION_TICKER_HOLD  5
 #define OPTION_REC_FINALIZE 6
+#define OPTION_REC_AUTO_FINALIZE 7
 
 #define SELECT_MODE_EXIT 0xFF
 
@@ -44,9 +45,8 @@ uint8_t get_cur_command() {
   return cur_command;
 }
 
-uint8_t handle_select_mode(const char* ptitle, const char** ppitems, uint8_t max) {
-  uint8_t prev_mode = max - 1;
-  uint8_t cur_mode = 0;
+uint8_t handle_select_mode(const char* ptitle, const char** ppitems, uint8_t max, uint8_t cur_mode) {
+  uint8_t prev_mode = (cur_mode + 1) % max;
 
   lcd_title_P(ptitle);
   
@@ -249,6 +249,7 @@ uint8_t handle_manual_filename(FILINFO* pfile_info) {
 
 void handle_record_mode(FILINFO* pfile_info) {
   const char* ppitems[] = {S_REC_MODE_MANUAL, S_REC_MODE_AUTO};
+  uint8_t cur_mode = 0;
 
   lcd_title_P(S_SELECT_RECORD_MODE);
 
@@ -262,7 +263,8 @@ void handle_record_mode(FILINFO* pfile_info) {
   }
   
   while (1) {
-    switch (handle_select_mode(S_SELECT_RECORD_MODE, ppitems, 2)) {
+    cur_mode = handle_select_mode(S_SELECT_RECORD_MODE, ppitems, 2, cur_mode);
+    switch (cur_mode) {
       case REC_MODE_AUTO:
         handle_record_mode_ready(NULL);
         return;
@@ -284,6 +286,9 @@ void handle_record_mode(FILINFO* pfile_info) {
 uint8_t handle_option_value(const char* poption, uint16_t* pcur_value, uint16_t min_value, uint16_t max_value, uint16_t step_value) {
   char buffer[MAX_LCD_LINE_LEN + 1];
   int32_t cur_value = *pcur_value;
+  if (cur_value < min_value || cur_value > max_value) {
+    cur_value = min_value;
+  }
   lcd_title_P(poption);
   
   utoa((uint16_t)cur_value, buffer, 10);
@@ -353,12 +358,14 @@ uint8_t handle_option_enum(const char* poption, uint16_t* pcur_value, uint16_t m
 }
 
 void handle_mode_options() {
-  const char* ppitems[] = {S_OPTION_MACHINE_TYPE, S_OPTION_VIDEO_MODE, S_OPTION_SIGNAL, S_OPTION_KEY_REPEAT, S_OPTION_TICKER_SPEED, S_OPTION_TICKER_HOLD, S_OPTION_REC_FINALIZE};
+  const char* ppitems[] = {S_OPTION_MACHINE_TYPE, S_OPTION_VIDEO_MODE, S_OPTION_SIGNAL, S_OPTION_KEY_REPEAT, S_OPTION_TICKER_SPEED, S_OPTION_TICKER_HOLD, S_OPTION_REC_FINALIZE, S_OPTION_REC_AUTO_FINALIZE};
   uint16_t value = 0;
   uint8_t save = 0;
+  uint8_t cur_mode = 0;
   
   while (1) {
-    switch (handle_select_mode(S_MODE_OPTIONS, ppitems, 7)) {
+    cur_mode = handle_select_mode(S_MODE_OPTIONS, ppitems, 8, cur_mode);
+    switch (cur_mode) {
       case OPTION_MACHINE_TYPE:
       {
         const char* ppenum[] = {S_C64, S_VIC, S_C16};
@@ -379,7 +386,6 @@ void handle_mode_options() {
         }
       }
       break;
-
       case OPTION_SIGNAL:
         value = g_invert_signal;
         if (handle_option_value(S_OPTION_SIGNAL, &value, 0, 1, 1)) {
@@ -420,6 +426,13 @@ void handle_mode_options() {
           save = 1;
         }
       break;
+      case OPTION_REC_AUTO_FINALIZE:
+        value = g_rec_auto_finalize;
+        if (handle_option_value(S_OPTION_REC_AUTO_FINALIZE, &value, 0, 1, 1)) {
+          g_rec_auto_finalize = value;
+          save = 1;
+        }
+      break;
       case SELECT_MODE_EXIT:
         if (save) {
           save_eeprom_data();
@@ -434,13 +447,15 @@ void handle_mode_options() {
 
 void main_menu(FILINFO* pfile_info) {
   const char* ppitems[] = {S_MODE_PLAY, S_MODE_RECORD, S_MODE_OPTIONS};
+  uint8_t cur_mode = 0;
   if ((g_num_files = get_num_files(pfile_info)) == 0) {
     lcd_title_P(S_NO_FILES_FOUND);
     return;
   }
 
   while (1) {
-    switch (handle_select_mode(S_SELECT_MODE, ppitems, 3)) {
+    cur_mode = handle_select_mode(S_SELECT_MODE, ppitems, 3, cur_mode);
+    switch (cur_mode) {
       case MODE_PLAY:
         handle_play_mode(pfile_info);
       break;
@@ -449,6 +464,9 @@ void main_menu(FILINFO* pfile_info) {
       break;
       case MODE_OPTIONS:
         handle_mode_options();
+      break;
+      case SELECT_MODE_EXIT:
+        cur_mode = 0;
       break;
     }
   }

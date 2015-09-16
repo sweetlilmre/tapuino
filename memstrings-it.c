@@ -29,6 +29,7 @@ const char S_OPTION_KEY_REPEAT[] PROGMEM = "Velocita' scorr.";
 const char S_OPTION_TICKER_SPEED[] PROGMEM = "Velocita' scroll";
 const char S_OPTION_TICKER_HOLD[] PROGMEM = "Pausa scroll";
 const char S_OPTION_REC_FINALIZE[] PROGMEM = "Pausa a fine REC";
+const char S_OPTION_REC_AUTO_FINALIZE[] PROGMEM = "Auto finalizza";
 
 const char S_MKDIR_FAILED[] PROGMEM = "Errore MKDIR!";
 const char S_CHDIR_FAILED[] PROGMEM = "Errore CHDIR!";
