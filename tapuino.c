@@ -282,7 +282,7 @@ ISR(TIMER1_COMPA_vect) {
 }
 
 ISR(TIMER2_COMPA_vect) {
-	disk_timerproc();	// Drive timer procedure for FatFs low level disk I/O module
+  disk_timerproc(); // Drive timer procedure for FatFs low level disk I/O module
   input_callback();
   g_timer_tick++;   // system ticker for timing
 }
@@ -290,11 +290,11 @@ ISR(TIMER2_COMPA_vect) {
 void disk_timer_setup() {
   TCCR2A = 0;
   TCCR2B = 0;
-  	
-	OCR2A = F_CPU / 1024 / 100 - 1; // 100Hz timer
-	TCCR2A = _BV(WGM21);            // CTC Mode
+  
+  OCR2A = F_CPU / 1024 / 100 - 1; // 100Hz timer
+  TCCR2A = _BV(WGM21);            // CTC Mode
   TCCR2B |=  (1 << CS22) | (1 << CS21) | (1 << CS20);  //pre-scaler 1024 
-	TIMSK2 |= _BV(OCIE2A);
+  TIMSK2 |= _BV(OCIE2A);
 }
 
 void signal_timer_start(uint8_t recording) {
@@ -517,7 +517,7 @@ void record_file(char* pfile_name) {
   memset (g_fat_buffer, 0, sizeof(g_fat_buffer));   // clear it all out
   uint32_t* buffer_magic = (uint32_t*) g_fat_buffer;
   //set appropriate header informations for C64 or C16  
-  if (g_machine_type == C16) { 				
+  if (g_machine_type == C16) {
     buffer_magic[0] = TAP_MAGIC_C16;
     g_fat_buffer[13] = C16;
   } else {

@@ -1,5 +1,5 @@
 #include <avr/io.h>
-#include "Integer.h"
+#include "integer.h"
 #include "spi.h"
 
 
