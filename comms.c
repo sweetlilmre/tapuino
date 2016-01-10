@@ -3,6 +3,7 @@
 #include "tapuino.h"
 #include "config.h"
 #include "comms.h"
+#include "rotaryencoder.h"
 
 volatile uint8_t g_cur_command = COMMAND_IDLE;
 
@@ -77,7 +78,13 @@ void player_handleInputKeys() {
   if (get_key_long(_BV(KEY_ABORT_PIN))) {
     g_cur_command = COMMAND_ABORT_LONG;
   }
-  
+
+#ifdef USE_ROTARY_ENCODER
+  uint8_t result = encoder_process();
+  if (result != DIR_NONE) {
+    g_cur_command = (result == DIR_CW ? COMMAND_NEXT : COMMAND_PREVIOUS);
+  }
+#else  
   if (get_key_press(_BV(KEY_PREV_PIN)) || get_key_rpt(_BV(KEY_PREV_PIN))) {
     g_cur_command = COMMAND_PREVIOUS;
   }
@@ -85,6 +92,7 @@ void player_handleInputKeys() {
   if (get_key_press(_BV(KEY_NEXT_PIN)) || get_key_rpt(_BV(KEY_NEXT_PIN))) {
     g_cur_command = COMMAND_NEXT;
   }
+#endif
 }
 
 void input_callback()
@@ -93,8 +101,8 @@ void input_callback()
   unsigned char i;
 
   // key changed ?
-#ifdef KEYS_INPUT_PULLUP
-  i = key_state ^ ~KEYS_READ_PINS;  // HW V2.0 for internal pullup the reading is inverted
+#if defined(KEYS_INPUT_PULLUP) || defined(USE_ROTARY_ENCODER)
+  i = key_state ^ ~KEYS_READ_PINS;  // HW V2.0 for internal pullup the read is inverted
 #else  
   i = key_state ^ KEYS_READ_PINS;   // HW V1.0 normal read
 #endif 
@@ -114,3 +122,20 @@ void input_callback()
   player_handleInputKeys();
 }
 
+void comms_setup() {
+#ifdef USE_ROTARY_ENCODER
+  encoder_setup();
+#endif
+  // keys are all inputs, activate pullups
+  KEYS_READ_DDR &= ~_BV(KEY_SELECT_PIN);
+  KEYS_READ_PORT |= _BV(KEY_SELECT_PIN);
+
+  KEYS_READ_DDR &= ~_BV(KEY_ABORT_PIN);
+  KEYS_READ_PORT |= _BV(KEY_ABORT_PIN);
+
+  KEYS_READ_DDR &= ~_BV(KEY_PREV_PIN);
+  KEYS_READ_PORT |= _BV(KEY_PREV_PIN);
+
+  KEYS_READ_DDR &= ~_BV(KEY_NEXT_PIN);
+  KEYS_READ_PORT |= _BV(KEY_NEXT_PIN);  
+}

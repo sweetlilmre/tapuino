@@ -10,6 +10,7 @@
 #define COMMAND_NEXT        5
 #define COMMAND_PREVIOUS    6
 
+void comms_setup();
 void input_callback();
 extern volatile uint8_t g_cur_command;
 

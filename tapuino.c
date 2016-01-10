@@ -685,18 +685,8 @@ int tapuino_hardware_setup(void)
   REC_LED_DDR |= _BV(REC_LED_PIN);
   REC_LED_OFF();
   
-  // keys are all inputs, activate pullups
-  KEYS_READ_DDR &= ~_BV(KEY_SELECT_PIN);
-  KEYS_READ_PORT |= _BV(KEY_SELECT_PIN);
-
-  KEYS_READ_DDR &= ~_BV(KEY_ABORT_PIN);
-  KEYS_READ_PORT |= _BV(KEY_ABORT_PIN);
-
-  KEYS_READ_DDR &= ~_BV(KEY_PREV_PIN);
-  KEYS_READ_PORT |= _BV(KEY_PREV_PIN);
-
-  KEYS_READ_DDR &= ~_BV(KEY_NEXT_PIN);
-  KEYS_READ_PORT |= _BV(KEY_NEXT_PIN);
+  // comms.c
+  comms_setup();
   
   disk_timer_setup();
   
