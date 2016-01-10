@@ -28,3 +28,6 @@
 // #define TAPUINO_LANGUAGE_IT
 // #define TAPUINO_LANGUAGE_TR
 
+// uncomment this to use a rotary encoder
+
+// USE_ROTARY_ENCODER
