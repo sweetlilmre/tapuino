@@ -14,4 +14,6 @@ void comms_setup();
 void input_callback();
 extern volatile uint8_t g_cur_command;
 
+void handle_encoder();
+
 #endif

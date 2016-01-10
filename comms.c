@@ -62,6 +62,15 @@ unsigned char get_key_long( unsigned char key_mask )
   return get_key_press( get_key_rpt( key_mask )); 
 }
 
+#ifdef USE_ROTARY_ENCODER
+void handle_encoder() {
+  uint8_t result = encoder_process();
+  if (result != DIR_NONE) {
+    g_cur_command = (result == DIR_CW ? COMMAND_NEXT : COMMAND_PREVIOUS);
+  }
+}
+#endif
+
 void player_handleInputKeys() {
   if (get_key_short(_BV(KEY_SELECT_PIN))) {
     g_cur_command = COMMAND_SELECT;
@@ -79,12 +88,7 @@ void player_handleInputKeys() {
     g_cur_command = COMMAND_ABORT_LONG;
   }
 
-#ifdef USE_ROTARY_ENCODER
-  uint8_t result = encoder_process();
-  if (result != DIR_NONE) {
-    g_cur_command = (result == DIR_CW ? COMMAND_NEXT : COMMAND_PREVIOUS);
-  }
-#else  
+#ifndef USE_ROTARY_ENCODER
   if (get_key_press(_BV(KEY_PREV_PIN)) || get_key_rpt(_BV(KEY_PREV_PIN))) {
     g_cur_command = COMMAND_PREVIOUS;
   }

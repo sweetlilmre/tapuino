@@ -33,6 +33,10 @@ int g_num_files = 0;
 int g_cur_file_index = 0;
 
 uint8_t get_cur_command() {
+#ifdef USE_ROTARY_ENCODER
+  handle_encoder();
+#endif
+
 // this order of operations is very important
 // first get an 'atomic' read of g_cur_command into a local
   uint8_t cur_command = g_cur_command;
