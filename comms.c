@@ -101,7 +101,7 @@ void input_callback()
   unsigned char i;
 
   // key changed ?
-#if defined(KEYS_INPUT_PULLUP) || defined(USE_ROTARY_ENCODER)
+#ifdef KEYS_INPUT_PULLUP
   i = key_state ^ ~KEYS_READ_PINS;  // HW V2.0 for internal pullup the read is inverted
 #else  
   i = key_state ^ KEYS_READ_PINS;   // HW V1.0 normal read

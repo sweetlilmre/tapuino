@@ -30,4 +30,4 @@
 
 // uncomment this to use a rotary encoder
 
-// USE_ROTARY_ENCODER
+// #define USE_ROTARY_ENCODER
