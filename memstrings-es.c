@@ -12,7 +12,7 @@ const char S_REC_MODE_AUTO[] PROGMEM = "Auto";
 const char S_ENTER_FILENAME[] PROGMEM = "Teclear nombre";
 
 const char S_INIT[] PROGMEM = "Inicializando...";
-const char S_INIT_FAILED[] PROGMEM = "No Inicializando";
+const char S_INIT_FAILED[] PROGMEM = "No Inicializado!";
 const char S_INIT_OK[] PROGMEM = "Inicializado!";
 
 const char S_NO_FILES_FOUND[] PROGMEM = "No hay ficheros!";
