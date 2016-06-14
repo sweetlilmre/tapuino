@@ -9,7 +9,7 @@
   #error Ether no or multiple LCD types defined! Have you created your config-user.h file?
 #endif
 
-#if defined(TAPUINO_LANGUAGE_EN) + defined(TAPUINO_LANGUAGE_IT) + defined(TAPUINO_LANGUAGE_TR) != 1
+#if defined(TAPUINO_LANGUAGE_EN) + defined(TAPUINO_LANGUAGE_ES) + defined(TAPUINO_LANGUAGE_IT) + defined(TAPUINO_LANGUAGE_TR) != 1
   #error Either no or multiple languages defined! Have you created your config-user.h file?
 #endif
 
