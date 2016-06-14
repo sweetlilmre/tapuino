@@ -20,7 +20,7 @@ const char S_SELECT_FILE[] PROGMEM = "Escoger fichero:";
 const char S_SELECT_MODE[] PROGMEM = "Modo:";
 const char S_MODE_PLAY[] PROGMEM = "Reproducir";
 const char S_MODE_RECORD[] PROGMEM = "Grabar";
-const char S_READY_RECORD[] PROGMEM = "Listo...";
+const char S_READY_RECORD[] PROGMEM = "Preparado!...";
 const char S_PRESS_START[] PROGMEM = "Pulsar START";
 
 const char S_MODE_OPTIONS[] PROGMEM = "Opciones";
