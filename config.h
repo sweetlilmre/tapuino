@@ -9,17 +9,17 @@
   #error Ether no or multiple LCD types defined! Have you created your config-user.h file?
 #endif
 
-#if defined(TAPUINO_LANGUAGE_EN) + defined(TAPUINO_LANGUAGE_ES) + defined(TAPUINO_LANGUAGE_IT) + defined(TAPUINO_LANGUAGE_TR) != 1
+#if defined(TAPUINO_LANGUAGE_EN) + defined(TAPUINO_LANGUAGE_ES) + defined(TAPUINO_LANGUAGE_IT) + defined(TAPUINO_LANGUAGE_TR) + defined(TAPUINO_LANGUAGE_DE) != 1
   #error Either no or multiple languages defined! Have you created your config-user.h file?
 #endif
 
 
 #define LCD_BIT_RS          0    // Register select
-#define LCD_BIT_RW          1    // Read / Write 
+#define LCD_BIT_RW          1    // Read / Write
 #define LCD_BIT_EN          2    // Enable
 #define LCD_BIT_BACKLIGHT   3    // Backlight
 #define LCD_BIT_DATA0       4    // 4 bit data, bit 0
-#define LCD_BIT_DATA1       5    // 4 bit data, bit 1 
+#define LCD_BIT_DATA1       5    // 4 bit data, bit 1
 #define LCD_BIT_DATA2       6    // 4 bit data, bit 2
 #define LCD_BIT_DATA3       7    // 4 bit data, bit 3
 // LCD dimensions config
