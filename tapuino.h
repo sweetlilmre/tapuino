@@ -10,10 +10,10 @@ uint32_t get_timer_tick();
 void save_eeprom_data();
 
 extern volatile uint8_t g_invert_signal;
-extern volatile uint8_t g_ticker_rate;
-extern volatile uint8_t g_ticker_hold_rate;
-extern volatile uint8_t g_key_repeat_next;
-extern volatile uint8_t g_rec_finalize_time;
+extern volatile uint16_t g_ticker_rate;
+extern volatile uint16_t g_ticker_hold_rate;
+extern volatile uint16_t g_key_repeat_next;
+extern volatile uint16_t g_rec_finalize_time;
 extern volatile uint8_t g_rec_auto_finalize;
 extern uint8_t g_machine_type;
 extern uint8_t g_video_mode;
