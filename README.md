@@ -8,6 +8,7 @@ The FAQ and other docs can be found on the wiki: https://github.com/sweetlilmre/
 
 A really nice board design can be found here: https://github.com/arananet/tapuinomini1.03
 And a write up here: http://arananet-net.kinja.com/tapuino-1-03-mejorando-el-tapuino-mini-1788202676
+These schematics are also provided in the "layout" folder as a convenience. 
 
 Portions of this code are copyright by their respective owners:
 
