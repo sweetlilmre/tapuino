@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <avr/pgmspace.h>
+#include <util/delay.h>
 #include "i2c_master.h"
 #include "font8x8.h"
 
@@ -59,6 +60,7 @@ void lcd_init(uint8_t lcd_addr)
   _displayCursor = 0;
   
   i2c_init();
+  _delay_ms(100);
 
   for (i = 0; i < sizeof (ssd1306_init_sequence); i++) {
     ssd1306_send_command(pgm_read_byte(&ssd1306_init_sequence[i]));
