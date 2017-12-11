@@ -2,7 +2,7 @@
 #ifdef LCD_USE_SSD131X_OLED_MODULE
 
 #include <util/delay.h>
-#include "i2cmaster.h"
+#include "i2c_master.h"
 
 #define MODE_OLED_COMMAND 0x80
 #define MODE_OLED_DATA 0x40
