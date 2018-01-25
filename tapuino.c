@@ -469,6 +469,9 @@ int play_file(FILINFO* pfile_info)
   // end of load UI indicator
   lcd_busy_spinner();
   
+  // switch off read LED
+  TAPE_READ_LOW();
+  
   // prevent leakage of g_cur_command, the standard mechanism is to use get_cur_command() which would clear the global
   g_cur_command = COMMAND_IDLE;
   
@@ -545,6 +548,8 @@ void record_file(char* pfile_name) {
     lcd_spinner(g_timer_tick, -1);
   }
 
+  // activate pull-up
+  TAPE_WRITE_PORT |= _BV(TAPE_WRITE_PIN);
   // Start recv-ISR
   signal_timer_start(1);
 
@@ -602,6 +607,9 @@ void record_file(char* pfile_name) {
 
   // end of load UI indicator
   lcd_busy_spinner();
+  // deactivate pull-up
+  TAPE_WRITE_PORT &= ~_BV(TAPE_WRITE_PIN);
+
   REC_LED_OFF();
 }
 
@@ -666,11 +674,13 @@ int tapuino_hardware_setup(void)
   
   // read is output to C64
   TAPE_READ_DDR |= _BV(TAPE_READ_PIN);
-  TAPE_READ_HIGH();
+  // start with tape read LED off
+  TAPE_READ_LOW();
   
   // write is input from C64, activate pullups
   TAPE_WRITE_DDR &= ~_BV(TAPE_WRITE_PIN);
-  TAPE_WRITE_PORT |= _BV(TAPE_WRITE_PIN);
+  // no pull-up for now, activate pull-up just before write section, write LED off
+  TAPE_WRITE_PORT &= ~_BV(TAPE_WRITE_PIN);
   
   // motor is input from C64, activate pullups
   MOTOR_DDR &= ~_BV(MOTOR_PIN);
