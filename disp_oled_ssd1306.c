@@ -36,7 +36,13 @@ const uint8_t ssd1306_init_sequence [] PROGMEM = {
                 // 10=Page Addressing Mode (RESET); 11=Invalid
   0xA1,         // Set Segment Re-map. A0=address mapped; A1=address 127 mapped. 
   0xC8,         // Set COM Output Scan Direction
-  0xDA, 0x02,   // Set com pins hardware configuration    
+  
+#ifdef LCD_SSD1306_BIG_FONTS
+  0xDA, 0x02,   // Set com pins hardware configuration
+#else
+  0xDA, 0x12,   // Set com pins hardware configuration
+#endif
+  
   0x81, 0x3F,   // Set contrast control register
   0xD9, 0x22,   // Set pre-charge period
   0xDB,         // --set vcomh
