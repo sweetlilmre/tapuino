@@ -9,6 +9,12 @@
   #error Ether no or multiple LCD types defined! Have you created your config-user.h file?
 #endif
 
+#if defined(LCD_USE_SSD1306_OLED_MODULE)
+  #if defined(LCD_SSD1306_128x64) + defined(LCD_SSD1306_128x32) != 1
+    #error When using the SSD1306 module, define EITHER: LCD_SSD1306_128x64 or LCD_SSD1306_128x32 depending on your module type
+  #endif
+#endif
+
 #if defined(TAPUINO_LANGUAGE_EN) + defined(TAPUINO_LANGUAGE_ES) + defined(TAPUINO_LANGUAGE_IT) + defined(TAPUINO_LANGUAGE_TR) + defined(TAPUINO_LANGUAGE_DE) != 1
   #error Either no or multiple languages defined! Have you created your config-user.h file?
 #endif
