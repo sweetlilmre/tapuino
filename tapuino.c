@@ -409,7 +409,7 @@ int play_file(FILINFO* pfile_info)
   // Start send-ISR
   signal_timer_start(0);
 
-  while (br > 0) {
+  do {
     // Wait until ISR is in the new half of the buffer
     while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
       // feedback to the user
@@ -436,7 +436,7 @@ int play_file(FILINFO* pfile_info)
     f_read(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
     g_write_index += 128;
     perc = (g_tap_file_pos * 100) / g_tap_info.length;
-  }
+  } while (br > 0);
 
   // wait for the remaining buffer to be read.
   while (!g_tap_file_complete) {
