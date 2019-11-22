@@ -37,29 +37,11 @@ typedef enum
   NSTC,
 } VIDEO_MODE;
 
-
 // magic strings found in the TAP header, represented as uint32_t values in little endian format (reversed string)
 #define TAP_MAGIC_C64      0x2D343643   // "C64-"  as "-46C"
 #define TAP_MAGIC_C16      0x2D363143   // "C16-"  as "-61C"
 #define TAP_MAGIC_POSTFIX1 0x45504154   // "TAPE"  as "EPAT"
 #define TAP_MAGIC_POSTFIX2 0x5741522D   // "-RAW"  as "WAR-"
-
-struct TAP_INFO {
-  uint8_t version;              // TAP file format version:
-                                // Version  0: 8-bit data, 0x00 indicates overflow
-                                //          1: 8-bit, 0x00 indicates 24-bit overflow to follow
-                                //          2: same as 1 but with 2 half-wave values
-  uint8_t platform;             // Platform 0: C64
-                                //          1: VIC
-                                //          2: C16
-  uint8_t video;                // Video    0: PAL 
-                                //          1: NTSC
-  uint8_t reserved;
-  volatile uint32_t length;     // total length of the TAP data excluding header in bytes
-  volatile uint32_t cycles;     // 
-};
-
-static struct TAP_INFO g_tap_info;
 
 // the maximum TAP delay is a 24-bit value i.e. 0xFFFFFF cycles
 // we need this constant to determine if the loader has switched off the motor before the tap has completed
@@ -68,6 +50,9 @@ static struct TAP_INFO g_tap_info;
 #define MAX_SIGNAL_CYCLES     (g_cycle_mult_raw * 0xFFFFFF * 2)
 
 // helper variables for the ISR and loader code
+
+static uint8_t g_tap_version;                   // TAP file version
+static uint32_t g_tap_length;                   // TAP file length
 
 static volatile uint8_t g_read_index;           // read index in the 256 byte buffer
 static volatile uint8_t g_write_index;          // write index in the 256 byte buffer
@@ -94,7 +79,7 @@ volatile uint8_t g_invert_signal = 0;           // invert the signal for transmi
 
 volatile uint16_t g_ticker_rate = TICKER_RATE / 10;
 volatile uint16_t g_ticker_hold_rate = TICKER_HOLD / 10;
-volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
+//volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
 volatile uint16_t g_key_repeat_next = KEY_REPEAT_NEXT / 10;
 volatile uint16_t g_rec_finalize_time = REC_FINALIZE_TIME / 10;
 
@@ -185,7 +170,7 @@ ISR(TIMER1_OVF_vect){
 // signal values are measured in uS, so OCR1A is set to the value from the TAP file (converted into uS) for each signal half
 // i.e. TAP value converted to uS * 2 == full signal length
 ISR(TIMER1_COMPA_vect) {
-  uint32_t tap_data;
+  uint16_t tap_data;
 
   // keep track of the number of cycles in case we get to a MOTOR stop situation before the TAP has completed
   g_total_timer_count += OCR1A;
@@ -194,91 +179,65 @@ ISR(TIMER1_COMPA_vect) {
   if (MOTOR_IS_OFF() || g_is_paused) {
     return;
   }
-  
-  if (g_signal_2nd_half) {                // 2nd half of the signal
-    if (g_pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
-      g_pulse_length -= 0xFFFF;
-      OCR1A = 0xFFFF;
-    } else {
-      OCR1A = (unsigned short) g_pulse_length;
-      g_pulse_length = 0;                 // clear this, for 1st half check so that the next data is loaded
-      g_signal_2nd_half = 0;              // next time round switch to 1st half
-    }
-    if (g_invert_signal) {
-      TAPE_READ_LOW();                     // set the signal high
-    } else {
-      TAPE_READ_HIGH();                   // set the signal high
-    }
-  } else {                                // 1st half of the signal
-    if (g_pulse_length) {                 // do we have any pulse left?
-      if (g_pulse_length > 0xFFFF) {      // check to see if its bigger than 16 bits
-        g_pulse_length -= 0xFFFF;
-        OCR1A = 0xFFFF;
-      } else {
-        OCR1A = (unsigned short) g_pulse_length;
-        g_pulse_length = g_pulse_length_save; // restore pulse length for the 2nd half of the signal
-        g_signal_2nd_half = 1;            // next time round switch to 2nd half
-      }
-    } else {
-      g_total_timer_count = 0;
-      if (g_tap_file_pos >= g_tap_info.length) {
-        g_tap_file_complete = 1;
-        return;                           // reached the end of the TAP file so don't process any more!
-      }
-      tap_data = (unsigned long) g_fat_buffer[g_read_index++];
-      g_tap_file_pos++;
 
-      // code for format 0 handling
-      if (g_tap_info.version == 0 && tap_data == 0) {
-        tap_data = 256;
-      }        
+  if (g_pulse_length == 0) {                 // No pulse left?
+    g_total_timer_count = 0;
+
+    if (g_tap_file_pos >= g_tap_length) {
+      g_tap_file_complete = 1;
+      return;                           // reached the end of the TAP file so don't process any more!
+    }
+
+    tap_data = (uint16_t) g_fat_buffer[g_read_index];
+
+    // code for format 0 handling
+    if (g_tap_version == 0 && tap_data == 0) {
+      tap_data = 256;
+    }        
       
-      if (tap_data != 0) {
-        g_pulse_length = tap_data * g_cycle_mult_8;
-      } else {
-        g_pulse_length =  (unsigned long) g_fat_buffer[g_read_index++];
-        g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
-        g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
-        g_pulse_length *= g_cycle_mult_raw;
-        g_tap_file_pos += 3;
-      }
+    if (tap_data != 0) {
+      g_pulse_length = tap_data * g_cycle_mult_8;
+    } else {
+      g_pulse_length =  (uint32_t) g_fat_buffer[g_read_index+1];
+      g_pulse_length |= ((uint32_t) g_fat_buffer[g_read_index+2]) << 8;
+      g_pulse_length |= ((uint32_t) g_fat_buffer[g_read_index+3]) << 16;
+      g_pulse_length *= g_cycle_mult_raw;
+    }
 
-      if (g_tap_info.version != 2) {
-        g_pulse_length_save = g_pulse_length;   // save this for the 2nd half of the wave
-      } else {
-        // format 2 is half-wave and timer is running at 2Mhz so double
-        g_pulse_length <<= 1;
-        // now read second half-wave for C16 / Plus4 format
-        tap_data = (unsigned long) g_fat_buffer[g_read_index++];
+    if (g_tap_version == 2) {
+      // format 2 is half-wave and timer is running at 2Mhz so double
+      g_pulse_length <<= 1;
+    }
+
+    // Only move on to next pulse if 2nd half-cycle or tap v2
+	if(g_signal_2nd_half || g_tap_version == 2){
+      if(tap_data){
+        g_read_index++;
         g_tap_file_pos++;
-        if (tap_data != 0) {
-          g_pulse_length_save = tap_data * g_cycle_mult_8;
-        } else {
-          g_pulse_length_save =  (unsigned long) g_fat_buffer[g_read_index++];
-          g_pulse_length_save |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
-          g_pulse_length_save |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
-          g_pulse_length_save *= g_cycle_mult_raw;
-          g_tap_file_pos += 3;
-        }
-        // format 2 is half-wave and timer is running at 2Mhz so double
-        g_pulse_length_save <<= 1;
-      }
-      
-      if (g_pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
-        g_pulse_length -= 0xFFFF;
-        OCR1A = 0xFFFF;
       } else {
-        OCR1A = (unsigned short) g_pulse_length;
-        g_pulse_length = g_pulse_length_save; // restore pulse length for the 2nd half of the signal
-        g_signal_2nd_half = 1;            // next time round switch to 2nd half
+        g_read_index += 4;
+        g_tap_file_pos += 4;
       }
-      if (g_invert_signal) {
-        TAPE_READ_HIGH();                   // set the signal high
-      } else {
-        TAPE_READ_LOW();                     // set the signal high
-      }
-    }
+	}
   }
+
+  // Set output
+  if (g_invert_signal ^ g_signal_2nd_half) {
+    TAPE_READ_HIGH();                   // set the signal high
+  } else {
+    TAPE_READ_LOW();                     // set the signal low
+  }
+
+  // Set timer
+  if (g_pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
+    g_pulse_length -= 0xFFFF;
+    OCR1A = 0xFFFF;
+  } else {
+    OCR1A = (unsigned short) g_pulse_length;
+    g_pulse_length = 0;
+    g_signal_2nd_half = !g_signal_2nd_half;  // Switch half-cycle
+  }
+
 }
 
 ISR(TIMER2_COMPA_vect) {
@@ -327,30 +286,25 @@ int verify_tap(FILINFO* pfile_info) {
   FRESULT res;
   UINT br;
 
-  memset(&g_tap_info, 0, sizeof(g_tap_info));
-
   res = f_open(&g_fil, pfile_info->fname, FA_READ);
   if (res != FR_OK) {
     lcd_title_P(S_OPEN_FAILED);
     return 0;
   }
 
-  res = f_read(&g_fil, (void*) g_fat_buffer, 12, &br);
+  res = f_read(&g_fil, (void*) g_fat_buffer, 20, &br);
   if (res != FR_OK) {
     lcd_title_P(S_READ_FAILED);
     return 0;
   }
 
-  res = f_read(&g_fil, (void*) &g_tap_info, 8, &br);
-  if (res != FR_OK) {
-    lcd_title_P(S_READ_FAILED);
-    return 0;
-  }
+  g_tap_version = g_fat_buffer[12];
+  g_tap_length = ((uint32_t) g_fat_buffer[19]) << 24 | ((uint32_t) g_fat_buffer[18]) << 16 | ((uint16_t) g_fat_buffer[17]) << 8 | g_fat_buffer[16];
 
   // check size first
-  if (g_tap_info.length != (pfile_info->fsize - 20)) {
+  if (g_tap_length != (pfile_info->fsize - 20)) {
     lcd_title_P(S_INVALID_SIZE);
-    g_tap_info.length = pfile_info->fsize - 20;
+    g_tap_length = pfile_info->fsize - 20;
     lcd_busy_spinner();
   }
   
@@ -409,7 +363,7 @@ int play_file(FILINFO* pfile_info)
   // Start send-ISR
   signal_timer_start(0);
 
-  while (br > 0) {
+  do {
     // Wait until ISR is in the new half of the buffer
     while ((g_read_index & 0x80) == (g_write_index & 0x80)) {
       // feedback to the user
@@ -435,8 +389,8 @@ int play_file(FILINFO* pfile_info)
     
     f_read(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
     g_write_index += 128;
-    perc = (g_tap_file_pos * 100) / g_tap_info.length;
-  }
+    perc = (g_tap_file_pos * 100) / g_tap_length;
+  } while (br > 0);
 
   // wait for the remaining buffer to be read.
   while (!g_tap_file_complete) {
@@ -637,7 +591,7 @@ void load_eeprom_data() {
     
     g_ticker_rate = eeprom_read_byte((uint8_t *) 3);
     g_ticker_hold_rate = eeprom_read_byte((uint8_t *) 4);
-    g_key_repeat_start = eeprom_read_byte((uint8_t *) 5);
+//    g_key_repeat_start = eeprom_read_byte((uint8_t *) 5);
     g_key_repeat_next = eeprom_read_byte((uint8_t *) 6);
     g_rec_finalize_time = eeprom_read_byte((uint8_t *) 7);
     g_rec_auto_finalize = eeprom_read_byte((uint8_t *) 8);
@@ -651,7 +605,7 @@ void save_eeprom_data() {
   eeprom_update_byte((uint8_t *) 2, g_video_mode);
   eeprom_update_byte((uint8_t *) 3, g_ticker_rate);
   eeprom_update_byte((uint8_t *) 4, g_ticker_hold_rate);
-  eeprom_update_byte((uint8_t *) 5, g_key_repeat_start);
+//  eeprom_update_byte((uint8_t *) 5, g_key_repeat_start);
   eeprom_update_byte((uint8_t *) 6, g_key_repeat_next);
   eeprom_update_byte((uint8_t *) 7, g_rec_finalize_time);
   eeprom_update_byte((uint8_t *) 8, g_rec_auto_finalize);

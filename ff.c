@@ -117,7 +117,7 @@
 
 #include "ff.h"			/* Declarations of FatFs API */
 #include "diskio.h"		/* Declarations of disk I/O functions */
-
+#include <avr/pgmspace.h>
 
 
 
@@ -538,7 +538,7 @@ WCHAR LfnBuf[_MAX_LFN+1];
 
 #ifdef _EXCVT
 static
-const BYTE ExCvt[] = _EXCVT;	/* Upper conversion table for extended characters */
+const BYTE ExCvt[] PROGMEM = _EXCVT;	/* Upper conversion table for extended characters */
 #endif
 
 
@@ -1885,7 +1885,7 @@ FRESULT create_name (
 		if (w >= 0x80) {				/* Non ASCII character */
 #ifdef _EXCVT
 			w = ff_convert(w, 0);		/* Unicode -> OEM code */
-			if (w) w = ExCvt[w - 0x80];	/* Convert extended character to upper (SBCS) */
+			if (w) w = pgm_read_byte(&ExCvt[w - 0x80]);	/* Convert extended character to upper (SBCS) */
 #else
 			w = ff_convert(ff_wtoupper(w), 0);	/* Upper converted Unicode -> OEM code */
 #endif
@@ -1962,7 +1962,7 @@ FRESULT create_name (
 		if (c >= 0x80) {				/* Extended character? */
 			b |= 3;						/* Eliminate NT flag */
 #ifdef _EXCVT
-			c = ExCvt[c - 0x80];		/* To upper extended characters (SBCS cfg) */
+			c = pgm_read_byte(&ExCvt[c - 0x80]);		/* To upper extended characters (SBCS cfg) */
 #else
 #if !_DF1S
 			return FR_INVALID_NAME;		/* Reject extended characters (ASCII cfg) */
@@ -3849,7 +3849,7 @@ FRESULT f_setlabel (
 #else
 			if (IsLower(w)) w -= 0x20;			/* To upper ASCII characters */
 #ifdef _EXCVT
-			if (w >= 0x80) w = ExCvt[w - 0x80];	/* To upper extended characters (SBCS cfg) */
+			if (w >= 0x80) w = pgm_read_byte(&ExCvt[w - 0x80]);	/* To upper extended characters (SBCS cfg) */
 #else
 			if (!_DF1S && w >= 0x80) w = 0;		/* Reject extended characters (ASCII cfg) */
 #endif
