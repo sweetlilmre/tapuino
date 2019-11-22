@@ -79,7 +79,7 @@ volatile uint8_t g_invert_signal = 0;           // invert the signal for transmi
 
 volatile uint16_t g_ticker_rate = TICKER_RATE / 10;
 volatile uint16_t g_ticker_hold_rate = TICKER_HOLD / 10;
-volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
+//volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
 volatile uint16_t g_key_repeat_next = KEY_REPEAT_NEXT / 10;
 volatile uint16_t g_rec_finalize_time = REC_FINALIZE_TIME / 10;
 
@@ -617,7 +617,7 @@ void load_eeprom_data() {
     
     g_ticker_rate = eeprom_read_byte((uint8_t *) 3);
     g_ticker_hold_rate = eeprom_read_byte((uint8_t *) 4);
-    g_key_repeat_start = eeprom_read_byte((uint8_t *) 5);
+//    g_key_repeat_start = eeprom_read_byte((uint8_t *) 5);
     g_key_repeat_next = eeprom_read_byte((uint8_t *) 6);
     g_rec_finalize_time = eeprom_read_byte((uint8_t *) 7);
     g_rec_auto_finalize = eeprom_read_byte((uint8_t *) 8);
@@ -631,7 +631,7 @@ void save_eeprom_data() {
   eeprom_update_byte((uint8_t *) 2, g_video_mode);
   eeprom_update_byte((uint8_t *) 3, g_ticker_rate);
   eeprom_update_byte((uint8_t *) 4, g_ticker_hold_rate);
-  eeprom_update_byte((uint8_t *) 5, g_key_repeat_start);
+//  eeprom_update_byte((uint8_t *) 5, g_key_repeat_start);
   eeprom_update_byte((uint8_t *) 6, g_key_repeat_next);
   eeprom_update_byte((uint8_t *) 7, g_rec_finalize_time);
   eeprom_update_byte((uint8_t *) 8, g_rec_auto_finalize);
