@@ -37,29 +37,11 @@ typedef enum
   NSTC,
 } VIDEO_MODE;
 
-
 // magic strings found in the TAP header, represented as uint32_t values in little endian format (reversed string)
 #define TAP_MAGIC_C64      0x2D343643   // "C64-"  as "-46C"
 #define TAP_MAGIC_C16      0x2D363143   // "C16-"  as "-61C"
 #define TAP_MAGIC_POSTFIX1 0x45504154   // "TAPE"  as "EPAT"
 #define TAP_MAGIC_POSTFIX2 0x5741522D   // "-RAW"  as "WAR-"
-
-struct TAP_INFO {
-  uint8_t version;              // TAP file format version:
-                                // Version  0: 8-bit data, 0x00 indicates overflow
-                                //          1: 8-bit, 0x00 indicates 24-bit overflow to follow
-                                //          2: same as 1 but with 2 half-wave values
-  uint8_t platform;             // Platform 0: C64
-                                //          1: VIC
-                                //          2: C16
-  uint8_t video;                // Video    0: PAL 
-                                //          1: NTSC
-  uint8_t reserved;
-  volatile uint32_t length;     // total length of the TAP data excluding header in bytes
-  volatile uint32_t cycles;     // 
-};
-
-static struct TAP_INFO g_tap_info;
 
 // the maximum TAP delay is a 24-bit value i.e. 0xFFFFFF cycles
 // we need this constant to determine if the loader has switched off the motor before the tap has completed
@@ -68,6 +50,9 @@ static struct TAP_INFO g_tap_info;
 #define MAX_SIGNAL_CYCLES     (g_cycle_mult_raw * 0xFFFFFF * 2)
 
 // helper variables for the ISR and loader code
+
+static uint8_t g_tap_version;                   // TAP file version
+static uint32_t g_tap_length;                   // TAP file length
 
 static volatile uint8_t g_read_index;           // read index in the 256 byte buffer
 static volatile uint8_t g_write_index;          // write index in the 256 byte buffer
@@ -221,7 +206,7 @@ ISR(TIMER1_COMPA_vect) {
       }
     } else {
       g_total_timer_count = 0;
-      if (g_tap_file_pos >= g_tap_info.length) {
+      if (g_tap_file_pos >= g_tap_length) {
         g_tap_file_complete = 1;
         return;                           // reached the end of the TAP file so don't process any more!
       }
@@ -229,7 +214,7 @@ ISR(TIMER1_COMPA_vect) {
       g_tap_file_pos++;
 
       // code for format 0 handling
-      if (g_tap_info.version == 0 && tap_data == 0) {
+      if (g_tap_version == 0 && tap_data == 0) {
         tap_data = 256;
       }        
       
@@ -243,7 +228,7 @@ ISR(TIMER1_COMPA_vect) {
         g_tap_file_pos += 3;
       }
 
-      if (g_tap_info.version != 2) {
+      if (g_tap_version != 2) {
         g_pulse_length_save = g_pulse_length;   // save this for the 2nd half of the wave
       } else {
         // format 2 is half-wave and timer is running at 2Mhz so double
@@ -327,30 +312,25 @@ int verify_tap(FILINFO* pfile_info) {
   FRESULT res;
   UINT br;
 
-  memset(&g_tap_info, 0, sizeof(g_tap_info));
-
   res = f_open(&g_fil, pfile_info->fname, FA_READ);
   if (res != FR_OK) {
     lcd_title_P(S_OPEN_FAILED);
     return 0;
   }
 
-  res = f_read(&g_fil, (void*) g_fat_buffer, 12, &br);
+  res = f_read(&g_fil, (void*) g_fat_buffer, 20, &br);
   if (res != FR_OK) {
     lcd_title_P(S_READ_FAILED);
     return 0;
   }
 
-  res = f_read(&g_fil, (void*) &g_tap_info, 8, &br);
-  if (res != FR_OK) {
-    lcd_title_P(S_READ_FAILED);
-    return 0;
-  }
+  g_tap_version = g_fat_buffer[12];
+  g_tap_length = ((uint32_t) g_fat_buffer[19]) << 24 | ((uint32_t) g_fat_buffer[18]) << 16 | ((uint16_t) g_fat_buffer[17]) << 8 | g_fat_buffer[16];
 
   // check size first
-  if (g_tap_info.length != (pfile_info->fsize - 20)) {
+  if (g_tap_length != (pfile_info->fsize - 20)) {
     lcd_title_P(S_INVALID_SIZE);
-    g_tap_info.length = pfile_info->fsize - 20;
+    g_tap_length = pfile_info->fsize - 20;
     lcd_busy_spinner();
   }
   
@@ -435,7 +415,7 @@ int play_file(FILINFO* pfile_info)
     
     f_read(&g_fil, (void*) g_fat_buffer + g_write_index, 128, &br);
     g_write_index += 128;
-    perc = (g_tap_file_pos * 100) / g_tap_info.length;
+    perc = (g_tap_file_pos * 100) / g_tap_length;
   } while (br > 0);
 
   // wait for the remaining buffer to be read.
