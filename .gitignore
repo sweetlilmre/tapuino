@@ -24,3 +24,4 @@
 
 # Target directory
 target/
+config-user.h

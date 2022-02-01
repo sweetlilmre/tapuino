@@ -94,7 +94,7 @@ volatile uint8_t g_invert_signal = 0;           // invert the signal for transmi
 
 volatile uint16_t g_ticker_rate = TICKER_RATE / 10;
 volatile uint16_t g_ticker_hold_rate = TICKER_HOLD / 10;
-volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
+// volatile uint16_t g_key_repeat_start = KEY_REPEAT_START / 10;
 volatile uint16_t g_key_repeat_next = KEY_REPEAT_NEXT / 10;
 volatile uint16_t g_rec_finalize_time = REC_FINALIZE_TIME / 10;
 
@@ -370,17 +370,16 @@ int verify_tap(FILINFO* pfile_info) {
 
   // get the first buffer ready
   res = f_read(&g_fil, (void*) g_fat_buffer, FAT_BUF_SIZE, &br);
-  if (res != FR_OK) {
+  if ((res != FR_OK) || (br < FAT_BUF_SIZE)) {
     lcd_title_P(S_READ_FAILED);
     return 0;
-  }  
+  }
 
   return 1;
 }
 
 int play_file(FILINFO* pfile_info)
 {
-  UINT br;
   int perc = 0;
   g_tap_file_complete = 0;
   
@@ -390,6 +389,9 @@ int play_file(FILINFO* pfile_info)
     lcd_busy_spinner();
     return 0;
   }
+
+  // br is tested by verify_tap() to be at least FAT_BUF_SIZE (we've read at least FAT_BUF_SIZE from the TAP file)
+  UINT br = FAT_BUF_SIZE;
 
   // setup all start conditions
   g_write_index = 0;
@@ -637,7 +639,7 @@ void load_eeprom_data() {
     
     g_ticker_rate = eeprom_read_byte((uint8_t *) 3);
     g_ticker_hold_rate = eeprom_read_byte((uint8_t *) 4);
-    g_key_repeat_start = eeprom_read_byte((uint8_t *) 5);
+    // g_key_repeat_start = eeprom_read_byte((uint8_t *) 5);
     g_key_repeat_next = eeprom_read_byte((uint8_t *) 6);
     g_rec_finalize_time = eeprom_read_byte((uint8_t *) 7);
     g_rec_auto_finalize = eeprom_read_byte((uint8_t *) 8);
@@ -651,7 +653,7 @@ void save_eeprom_data() {
   eeprom_update_byte((uint8_t *) 2, g_video_mode);
   eeprom_update_byte((uint8_t *) 3, g_ticker_rate);
   eeprom_update_byte((uint8_t *) 4, g_ticker_hold_rate);
-  eeprom_update_byte((uint8_t *) 5, g_key_repeat_start);
+  // eeprom_update_byte((uint8_t *) 5, g_key_repeat_start);
   eeprom_update_byte((uint8_t *) 6, g_key_repeat_next);
   eeprom_update_byte((uint8_t *) 7, g_rec_finalize_time);
   eeprom_update_byte((uint8_t *) 8, g_rec_auto_finalize);
@@ -717,8 +719,8 @@ int tapuino_hardware_setup(void)
   lcd_setup();
 //  serial_println_P(S_INITI2COK);
   lcd_title_P(S_INIT);
-  sprintf_P((char*)g_fat_buffer, S_VERSION_PATTERN, TAPUINO_MAJOR_VERSION, TAPUINO_MINOR_VERSION, TAPUINO_BUILD_VERSION);
-  lcd_status(g_fat_buffer);
+  sprintf_P((char*) g_fat_buffer, S_VERSION_PATTERN, TAPUINO_MAJOR_VERSION, TAPUINO_MINOR_VERSION, TAPUINO_BUILD_VERSION);
+  lcd_status((char*) g_fat_buffer);
   _delay_ms(2000);
   
   
