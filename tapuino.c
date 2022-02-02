@@ -185,6 +185,8 @@ ISR(TIMER1_OVF_vect){
 // for v0 and v1 TAP files that means that we will use the same signal value twice (1 for each half of the wave)
 // i.e. TAP value converted to uS * 2 == full signal length
 // for v2 TAP files we will read the 2nd half of the signal from the TAP file for the 2nd half of the wave
+//
+// Thanks to @matsstaff for his contributions on refactoring this code
 ISR(TIMER1_COMPA_vect) {
   uint32_t tap_data;
 
@@ -234,8 +236,9 @@ ISR(TIMER1_COMPA_vect) {
     }
   }
 
-                                            // Set output signal. The wave transition is HIGH->LOW for the 1st half of the signal, LOW-> for the 2nd half of the signal
+                                            // Set output signal. The wave transition is HIGH->LOW for the 1st half of the signal, LOW->HIGH for the 2nd half of the signal
                                             // if the signal is inverted we have the opposite condition
+                                            // 
   if (g_invert_signal ^ g_signal_2nd_half) {
     TAPE_READ_HIGH();                       // set the signal high
   } else {
@@ -363,7 +366,7 @@ int play_file(FILINFO* pfile_info)
     return 0;
   }
 
-  // br is tested by verify_tap() to be at least FAT_BUF_SIZE (we've read at least FAT_BUF_SIZE from the TAP file)
+  // verify_tap() has read the full buffer (FAT_BUF_SIZE) into g_fat_buffer (or failed).
   UINT br = FAT_BUF_SIZE;
 
   // setup all start conditions
