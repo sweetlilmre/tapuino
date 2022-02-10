@@ -180,10 +180,13 @@ ISR(TIMER1_OVF_vect){
   }
 }
 
-
 // timer1 is running at 2MHz or 0.5 uS per tick.
 // signal values are measured in uS, so OCR1A is set to the value from the TAP file (converted into uS) for each signal half
+// for v0 and v1 TAP files that means that we will use the same signal value twice (1 for each half of the wave)
 // i.e. TAP value converted to uS * 2 == full signal length
+// for v2 TAP files we will read the 2nd half of the signal from the TAP file for the 2nd half of the wave
+//
+// Thanks to @matsstaff for his contributions on refactoring this code
 ISR(TIMER1_COMPA_vect) {
   uint32_t tap_data;
 
@@ -194,92 +197,65 @@ ISR(TIMER1_COMPA_vect) {
   if (MOTOR_IS_OFF() || g_is_paused) {
     return;
   }
-  
-  if (g_signal_2nd_half) {                // 2nd half of the signal
-    if (g_pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
-      g_pulse_length -= 0xFFFF;
-      OCR1A = 0xFFFF;
-    } else {
-      OCR1A = (unsigned short) g_pulse_length;
-      g_pulse_length = 0;                 // clear this, for 1st half check so that the next data is loaded
-      g_signal_2nd_half = 0;              // next time round switch to 1st half
-    }
-    if (g_invert_signal) {
-      TAPE_READ_LOW();                     // set the signal high
-    } else {
-      TAPE_READ_HIGH();                   // set the signal high
-    }
-  } else {                                // 1st half of the signal
-    if (g_pulse_length) {                 // do we have any pulse left?
-      if (g_pulse_length > 0xFFFF) {      // check to see if its bigger than 16 bits
-        g_pulse_length -= 0xFFFF;
-        OCR1A = 0xFFFF;
-      } else {
-        OCR1A = (unsigned short) g_pulse_length;
-        g_pulse_length = g_pulse_length_save; // restore pulse length for the 2nd half of the signal
-        g_signal_2nd_half = 1;            // next time round switch to 2nd half
-      }
-    } else {
-      g_total_timer_count = 0;
-      if (g_tap_file_pos >= g_tap_info.length) {
-        g_tap_file_complete = 1;
-        return;                           // reached the end of the TAP file so don't process any more!
-      }
-      tap_data = (unsigned long) g_fat_buffer[g_read_index++];
-      g_tap_file_pos++;
 
-      // code for format 0 handling
+  if (g_pulse_length == 0) {                // If this is the first time in, or the current pulse time has elapsed, then
+    if (g_pulse_length_save != 0) {         // if g_pulse_length_save > 0 then we have a non v2 format, so restore the pulse value and count down again for the 2nd half
+      g_pulse_length = g_pulse_length_save;
+      g_pulse_length_save = 0;              // making sure to clear g_pulse_length_save!
+    } else {                                // otherwise load a new pulse value from the TAP file
+      g_total_timer_count = 0;
+
+      if (g_tap_file_pos >= g_tap_info.length) {  // basic sanity check to see if we have any TAP data left!
+        g_tap_file_complete = 1;
+        return;                             // reached the end of the TAP file so don't process any more!
+      }
+
+      tap_data = (uint32_t) g_fat_buffer[g_read_index++];
+
+                                            // code for v0 TAP handling, a zero in a v0 file indicates an overflow, we replace by 256
       if (g_tap_info.version == 0 && tap_data == 0) {
         tap_data = 256;
       }        
-      
+                                            // if tap_data != 0 then this is a simple 8 bit pulse
       if (tap_data != 0) {
         g_pulse_length = tap_data * g_cycle_mult_8;
-      } else {
-        g_pulse_length =  (unsigned long) g_fat_buffer[g_read_index++];
-        g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
-        g_pulse_length |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
+        g_tap_file_pos++;
+      } else {                              // otherwise we have a 24 bit pulse value, read it from the buffer
+        g_pulse_length =  (uint32_t) g_fat_buffer[g_read_index++];
+        g_pulse_length |= ((uint32_t) g_fat_buffer[g_read_index++]) << 8;
+        g_pulse_length |= ((uint32_t) g_fat_buffer[g_read_index++]) << 16;
         g_pulse_length *= g_cycle_mult_raw;
         g_tap_file_pos += 3;
       }
 
-      if (g_tap_info.version != 2) {
-        g_pulse_length_save = g_pulse_length;   // save this for the 2nd half of the wave
+      if (g_tap_info.version == 2) {
+        g_pulse_length <<= 1;               // TAP v2 format is half-wave and the timer is running at 2Mhz so double the value
       } else {
-        // format 2 is half-wave and timer is running at 2Mhz so double
-        g_pulse_length <<= 1;
-        // now read second half-wave for C16 / Plus4 format
-        tap_data = (unsigned long) g_fat_buffer[g_read_index++];
-        g_tap_file_pos++;
-        if (tap_data != 0) {
-          g_pulse_length_save = tap_data * g_cycle_mult_8;
-        } else {
-          g_pulse_length_save =  (unsigned long) g_fat_buffer[g_read_index++];
-          g_pulse_length_save |= ((unsigned long) g_fat_buffer[g_read_index++]) << 8;
-          g_pulse_length_save |= ((unsigned long) g_fat_buffer[g_read_index++]) << 16;
-          g_pulse_length_save *= g_cycle_mult_raw;
-          g_tap_file_pos += 3;
-        }
-        // format 2 is half-wave and timer is running at 2Mhz so double
-        g_pulse_length_save <<= 1;
-      }
-      
-      if (g_pulse_length > 0xFFFF) {        // check to see if its bigger than 16 bits
-        g_pulse_length -= 0xFFFF;
-        OCR1A = 0xFFFF;
-      } else {
-        OCR1A = (unsigned short) g_pulse_length;
-        g_pulse_length = g_pulse_length_save; // restore pulse length for the 2nd half of the signal
-        g_signal_2nd_half = 1;            // next time round switch to 2nd half
-      }
-      if (g_invert_signal) {
-        TAPE_READ_HIGH();                   // set the signal high
-      } else {
-        TAPE_READ_LOW();                     // set the signal high
+        g_pulse_length_save = g_pulse_length; // otherwise save the pulse length for the 2nd half of a v0 or v1 wave
       }
     }
   }
+
+                                            // Set output signal. The wave transition is HIGH->LOW for the 1st half of the signal, LOW->HIGH for the 2nd half of the signal
+                                            // if the signal is inverted we have the opposite condition
+                                            // 
+  if (g_invert_signal ^ g_signal_2nd_half) {
+    TAPE_READ_HIGH();                       // set the signal high
+  } else {
+    TAPE_READ_LOW();                        // set the signal low
+  }
+
+                                            // Set timer
+  if (g_pulse_length > 0xFFFF) {            // check to see if its bigger than 16 bits
+    g_pulse_length -= 0xFFFF;
+    OCR1A = 0xFFFF;
+  } else {
+    OCR1A = (unsigned short) g_pulse_length;
+    g_pulse_length = 0;
+    g_signal_2nd_half = !g_signal_2nd_half;  // Flag that we will be processing the 2nd half of the signal next time the interrupt occurs
+  }
 }
+
 
 ISR(TIMER2_COMPA_vect) {
   disk_timerproc(); // Drive timer procedure for FatFs low level disk I/O module
@@ -390,7 +366,7 @@ int play_file(FILINFO* pfile_info)
     return 0;
   }
 
-  // br is tested by verify_tap() to be at least FAT_BUF_SIZE (we've read at least FAT_BUF_SIZE from the TAP file)
+  // verify_tap() has read the full buffer (FAT_BUF_SIZE) into g_fat_buffer (or failed).
   UINT br = FAT_BUF_SIZE;
 
   // setup all start conditions
@@ -399,6 +375,8 @@ int play_file(FILINFO* pfile_info)
   g_tap_file_pos = 0;
   g_signal_2nd_half = 0;
   g_is_paused = 0;
+  g_pulse_length = 0;
+  g_pulse_length_save = 0;
 
   lcd_title_P(S_LOADING);
 
