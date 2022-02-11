@@ -76,21 +76,21 @@ static volatile uint32_t g_total_timer_count;   // number of (AVR) cycles that t
 static volatile uint8_t g_tap_file_complete;    // flag to indicate that all bytes have been read from the TAP
 static volatile uint32_t g_tap_file_pos;        // current read position in the TAP (bytes)
 static uint32_t g_pulse_length = 0;             // length of pulse in uS
-static uint32_t g_pulse_length_save;            // save length for read
+static uint32_t g_pulse_length_save;            // saved length for 2nd half of the signal
 static volatile uint32_t g_overflow;            // write signal overflow timer detection
 static volatile uint32_t g_timer_tick = 0;      // timer tick at 100Hz (10 ms interval)
 
 uint8_t g_machine_type = C64;
 uint8_t g_video_mode = PAL;
-static double g_cycle_mult_raw = 0;
-static double g_cycle_mult_8 = 0;
+static double g_cycle_mult_raw = 0;             // multiplier to convert a 24 bit TAP value into uS
+static double g_cycle_mult_8 = 0;               // multiplier to convert an 8 bit TAP value into uS
 
 volatile uint8_t g_invert_signal = 0;           // invert the signal for transmission/reception to/from a real Datasette
 
 // all rate values are stored as milliseconds / 10.
 // the global ticker runs at 100Hz which then maps 1-1 with these values
 // So e.g. the key read function in comms.c: input_callback() is called by the global 100Hz timer, in this function g_key_repeat_next is used to determine the time between key repeats.
-// each time this value is decremented 10 ms have passed, so a value of  100 is 100*10 is 1000 ms or 1 second repeat.
+// each time this value is decremented 10 ms have passed, so a value of 100 is 100*10 = 1000 ms or 1 second repeat.
 
 volatile uint16_t g_ticker_rate = TICKER_RATE / 10;
 volatile uint16_t g_ticker_hold_rate = TICKER_HOLD / 10;
