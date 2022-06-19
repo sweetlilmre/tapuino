@@ -1,6 +1,8 @@
 Tapuino
 =======
 
+# This project is now in pure maintanence mode and has been superseeded by the [Tapuino Next](https://github.com/sweetlilmre/TapuinoNext)
+
 The $20 C64 Tape Emulator
 
 Details can be found on my blog: http://www.sweetlilmre.com
