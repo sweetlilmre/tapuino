@@ -1,20 +1,19 @@
 Tapuino
 =======
 
-# This project is now in pure maintanence mode and has been superseeded by the [Tapuino Next](https://github.com/sweetlilmre/TapuinoNext)
+This repository stems from the official [Tapuino project](https://github.com/sweetlilmre/tapuino)
 
-The $20 C64 Tape Emulator
+A 3D printable enclosure designed with Fusion 360 has been added, it can be printed using PLA and:
 
-Details can be found on my blog: http://www.sweetlilmre.com
-The FAQ and other docs can be found on the wiki: https://github.com/sweetlilmre/tapuino/wiki
+- 3 walls
+- 0.1mm layer height
+- Supports for the top section and the C=64 connector lid
 
-A really nice board design can be found here: https://github.com/arananet/tapuinomini1.03
-And a write up here: http://arananet-net.kinja.com/tapuino-1-03-mejorando-el-tapuino-mini-1788202676
-These schematics are also provided in the "layout" folder as a convenience. 
+## Available files ##
 
-Portions of this code are copyright by their respective owners:
+- [STL files for 3D printing](/CAD)
+- [Tapuino source code and instructions](/tapuino)
 
- * PetitFatfs: Chan: http://elm-chan.org/fsw/ff/00index_p.html
- * I2C code: Peter Fleury <pfleury@gmx.ch>  http://jump.to/fleury
- * LCD code: conversion of the Arduino code apparently by DFRobot? (converted to C by me)
+<img src="/pics/box3.jpg"/>
 
+<img src="/pics/board.jpg"/>
