@@ -20,7 +20,7 @@ Portions of this code are copyright by their respective owners:
 3D printable enclosure
 ======================
 
-A 3D printable enclosure designed with Fusion 360 can be printed using PLA using:
+A [3D printable enclosure](CAD) designed with Fusion 360 can be printed using PLA using:
 
 - 3 walls
 - 0.1mm layer height
