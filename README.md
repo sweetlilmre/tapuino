@@ -20,18 +20,6 @@ Portions of this code are copyright by their respective owners:
 3D printable enclosure
 ======================
 
-A [3D printable enclosure](CAD) designed with Fusion 360 can be printed using PLA using:
-
-- 3 walls
-- 0.1mm layer height
-- Supports for the top section and the C=64 connector lid
+A [3D printable enclosure](CAD) designed with Fusion 360 is available for download as .stl files
 
 <img src="/CAD/pics/box3.jpg"/>
-
-<img src="/CAD/pics/board.jpg"/>
-
-<img src="/CAD/pics/box-cad-1.png"/>
-
-<img src="/CAD/pics/box-cad-1.png"/>
-
-<img src="/CAD/pics/c64connector-closed.jpg"/>
