@@ -13,6 +13,6 @@ This is a 3D printable enclosure designed with Fusion 360. It can be printed usi
 
 <img src="/CAD/pics/box-cad-1.png"/>
 
-<img src="/CAD/pics/box-cad-1.png"/>
+<img src="/CAD/pics/box-cad-2.png"/>
 
 <img src="/CAD/pics/c64connector-closed.jpg"/>
