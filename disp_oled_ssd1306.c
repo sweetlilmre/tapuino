@@ -5,7 +5,12 @@
 #include <avr/pgmspace.h>
 #include <util/delay.h>
 #include "i2c_master.h"
+
+#ifdef LCD_SSD1306_BIG_FONTS
+#include "font8x16.h"
+#else
 #include "font8x8.h"
+#endif
 
 #define NUM_COLS  16
 #define NUM_ROWS  2
@@ -119,27 +124,32 @@ void lcd_noBacklight() {
   
 }
 
-
-void write_raw(uint8_t value, uint8_t cursor) {
-  uint8_t i, v, col;
-  uint8_t c = value - 32;
- 
-  col = _col << 3; // convert to pixel: character column * 8
+void write_raw_part(const uint8_t *data, uint8_t cursor_mask, int col, int row) {
   ssd1306_send_command_start();
-  i2c_write(SSD1306_SETSTARTPAGE + _row);
+  i2c_write(SSD1306_SETSTARTPAGE + row);
   i2c_write((col & 0x0f) | SSD1306_LOWCOLUMNADDR);
   i2c_write(((col & 0xf0) >> 4) | SSD1306_HIGHCOLUMNADDR);
-    
+
   ssd1306_send_data_start();
   // write 1 column of the character per iteration
-  for (i = 0; i < 8; i++)
+  for (int i = 0; i < 8; i++) 
   {
-    v = pgm_read_byte(&font8x8[c * 8 + i]);
-    // add underline for cursor: last pixel in the column
-    if (cursor) v |= 0x80;
+    uint8_t v = pgm_read_byte(&data[i]) | cursor_mask;
     i2c_write(v);
   }
   i2c_stop();
+}
+
+void write_raw(uint8_t value, uint8_t cursor) {
+  uint8_t col = _col << 3; // convert to pixel: character column * 3
+  uint8_t c = value - 32;
+
+#ifdef LCD_SSD1306_BIG_FONTS
+  write_raw_part(&font8x16_top[c * 8], 0, col, 2*_row);
+  write_raw_part(&font8x16_bottom[c * 8], cursor ? 0x80 : 0, col, 2*_row+1);
+#else
+  write_raw_part(&font8x8[c * 8], 0, col, _row);
+#endif
 }
 
 void lcd_setCursor(uint8_t col, uint8_t row)
