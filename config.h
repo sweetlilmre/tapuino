@@ -61,7 +61,7 @@
  * floating when no keys are pressed. This means that the pin should be driven in an open-collector fashion, otherwise
  * it can create problems, in particular on the Plus/4 where the Sense line is shared with data pin 2 of the User Port.
  *
- * This could be compensated in hardware (put a diode in series, cathode to computer side) or in software, by taking
+ * This could be compensated in hardware (put a diode in series, cathode to Arduino side) or in software, by taking
  * advantage of the way ATmega pins are configured, which is what we do here:
  * - To set sense "high" we set the pin to input mode, pin will go Hi-Z and basically float
  * - To set it low, we switch to output mode which will implicitly be low (PORTD defaults to 0 and we never touch it)
