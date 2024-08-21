@@ -648,8 +648,7 @@ int tapuino_hardware_setup(void)
   TWI_PORT |= _BV(TWI_PIN_SDA);
   TWI_PORT |= _BV(TWI_PIN_SCL);
     
-  // sense is output to C64
-  SENSE_DDR |= _BV(SENSE_PIN);
+  // sense is output to C64 but it works in an open-collector fashion, so no need to set DDR, just make sure it is off
   SENSE_OFF();
   
   // read is output to C64
